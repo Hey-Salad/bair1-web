@@ -1,26 +1,77 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap');
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-forest-night: #1A2410;
+  --color-bair-green: #4A8A1A;
+  --color-clean-air: #8DC44A;
+  --color-bear-brown: #8C6234;
+  --color-fresh-linen: #F2F4F0;
+  --color-amber-yellow: #F5C542;
+  --color-aqi-orange: #ED8B00;
+  --color-aqi-red: #D63031;
+  --color-aqi-purple: #6C3483;
+  --color-aqi-grey: #4A4A4A;
+  --color-background: var(--color-fresh-linen);
+  --color-foreground: var(--color-forest-night);
+  --font-sans: 'Space Grotesk', system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* AQI orb pulse animation */
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.85; }
+}
+
+.orb-pulse {
+  animation: orb-pulse 3s ease-in-out infinite;
+}
+
+/* Gentle bear breathing */
+@keyframes bear-breathe {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.bear-breathe {
+  animation: bear-breathe 4s ease-in-out infinite;
+}
+
+/* Tab transition */
+.tab-content-enter {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Bar chart animation */
+@keyframes growUp {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+.bar-grow {
+  animation: growUp 0.6s ease-out forwards;
+  transform-origin: bottom;
 }
