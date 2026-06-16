@@ -12,11 +12,11 @@ export default function Logo({ size = "default" }: { size?: "small" | "default" 
   return (
     <div className="flex items-center gap-2.5">
       <Image
-        src="/bear-logo.jpg"
+        src="/bear-logo.png"
         alt="Bair1 bear mascot"
         width={dimensions.img}
         height={dimensions.img}
-        className="rounded-full object-cover"
+        className="object-contain"
         priority
       />
       <span

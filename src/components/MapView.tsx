@@ -31,7 +31,12 @@ const legend = [
 export default function MapView() {
   return (
     <div className="tab-content-enter px-4 pb-28">
-      <h2 className="text-xl font-bold mb-1">Sensor Map</h2>
+      <div className="flex items-center justify-between mb-1">
+        <h2 className="text-xl font-bold">Sensor Map</h2>
+        <span className="text-[10px] font-medium bg-amber-yellow/15 text-amber-yellow/80 rounded-full px-2 py-0.5">
+          Demo
+        </span>
+      </div>
       <p className="text-sm text-forest-night/50 mb-4">Air quality sensors near you — London</p>
 
       {/* Map placeholder */}

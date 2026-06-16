@@ -27,11 +27,11 @@ export default function BearOrb({ aqiState, aqi }: BearOrbProps) {
       {/* Bear */}
       <div className="bear-breathe relative">
         <Image
-          src="/bear-logo.jpg"
+          src="/bear-logo.png"
           alt={`Bair1 bear — ${aqiState.level} air quality`}
           width={200}
           height={200}
-          className="rounded-3xl object-cover"
+          className="object-contain"
           priority
         />
       </div>
