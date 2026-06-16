@@ -79,7 +79,7 @@ export default function LandingPage() {
               href="#sensor"
               className="bg-bair-green text-white text-sm font-medium px-5 py-2.5 rounded-full hover:bg-bair-green/90 transition-colors"
             >
-              Get a Sensor
+              Get a Bair1 Sensor
             </Link>
           </div>
         </div>
@@ -117,7 +117,7 @@ export default function LandingPage() {
                 href="#sensor"
                 className="bg-white text-forest-night font-medium px-8 py-3.5 rounded-full text-base border border-forest-night/10 hover:border-forest-night/20 transition-colors"
               >
-                Get a Sensor
+                Get a Bair1 Sensor
               </Link>
             </div>
 
@@ -291,7 +291,7 @@ export default function LandingPage() {
               href="#sensor"
               className="bg-white text-forest-night font-medium px-8 py-3.5 rounded-full border border-forest-night/10 hover:border-forest-night/20 transition-colors"
             >
-              Get a Sensor
+              Get a Bair1 Sensor
             </Link>
           </div>
         </div>
