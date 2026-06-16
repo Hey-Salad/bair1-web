@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Bair1 — Know Your Air",
   description: "Real-time air quality monitoring. The bear sniffs the air so you don't have to.",
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
   openGraph: {
     title: "Bair1 — Know Your Air",
     description: "Real-time air quality, honestly delivered.",
@@ -25,7 +29,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans">{children}</body>
+      <body className="min-h-full flex flex-col font-sans bg-fresh-linen">{children}</body>
     </html>
   );
 }

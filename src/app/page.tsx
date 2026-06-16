@@ -133,7 +133,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="bg-white py-20">
+      <section className="py-20">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-center text-forest-night mb-4">
             How it works
@@ -182,7 +182,7 @@ export default function LandingPage() {
       </section>
 
       {/* AQI States */}
-      <section className="bg-white py-20">
+      <section className="py-20">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-center text-forest-night mb-4">
             The bear tells you everything
