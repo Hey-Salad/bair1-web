@@ -60,7 +60,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-fresh-linen/90 backdrop-blur-lg border-b border-forest-night/5">
+      <nav className="sticky top-0 z-50 bg-[#F2F4F0] border-b border-forest-night/5">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <Image src="/bear-logo.png" alt="Bair1" width={40} height={40} className="object-contain" />
@@ -129,7 +129,7 @@ export default function LandingPage() {
         </div>
 
         {/* Subtle gradient bg */}
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-clean-air/10 via-transparent to-transparent" />
+        {/* No gradient — keep background consistent */}
       </section>
 
       {/* How it works */}
@@ -298,22 +298,22 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-forest-night text-fresh-linen/60 py-10">
+      <footer className="bg-[#F2F4F0] border-t border-forest-night/10 text-forest-night/50 py-10">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
-              <Image src="/bear-logo.png" alt="Bair1" width={28} height={28} className="object-contain opacity-80" />
-              <span className="text-sm font-medium text-fresh-linen/80">
+              <Image src="/bear-logo.png" alt="Bair1" width={28} height={28} className="object-contain" />
+              <span className="text-sm font-medium text-forest-night/60">
                 Bair1 — A HeySalad Product
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm">
-              <Link href="/dashboard" className="hover:text-fresh-linen transition-colors">Dashboard</Link>
-              <a href="mailto:hello@heysalad.app" className="hover:text-fresh-linen transition-colors">Contact</a>
-              <span className="text-fresh-linen/30">bair1.live</span>
+              <Link href="/dashboard" className="hover:text-forest-night transition-colors">Dashboard</Link>
+              <a href="mailto:hello@heysalad.app" className="hover:text-forest-night transition-colors">Contact</a>
+              <span className="text-forest-night/30">bair1.live</span>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t border-fresh-linen/10 text-center text-xs text-fresh-linen/30">
+          <div className="mt-6 pt-6 border-t border-forest-night/10 text-center text-xs text-forest-night/30">
             &copy; {new Date().getFullYear()} HeySalad. Know your air.
           </div>
         </div>
