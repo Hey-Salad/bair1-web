@@ -60,7 +60,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-[#F2F4F0] border-b border-forest-night/5">
+      <nav className="sticky top-0 z-50 bg-[#F2F4F0]">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <Image src="/bear-logo.png" alt="Bair1" width={40} height={40} className="object-contain" />
@@ -298,7 +298,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#F2F4F0] border-t border-forest-night/10 text-forest-night/50 py-10">
+      <footer className="bg-[#F2F4F0] text-forest-night/50 py-10">
         <div className="max-w-5xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
@@ -313,7 +313,7 @@ export default function LandingPage() {
               <span className="text-forest-night/30">bair1.live</span>
             </div>
           </div>
-          <div className="mt-6 pt-6 border-t border-forest-night/10 text-center text-xs text-forest-night/30">
+          <div className="mt-6 pt-6 text-center text-xs text-forest-night/30">
             &copy; {new Date().getFullYear()} HeySalad. Know your air.
           </div>
         </div>
