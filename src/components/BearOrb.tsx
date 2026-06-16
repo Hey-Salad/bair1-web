@@ -11,21 +11,8 @@ interface BearOrbProps {
 export default function BearOrb({ aqiState, aqi }: BearOrbProps) {
   return (
     <div className="flex flex-col items-center">
-      {/* Orb */}
-      <div
-        className="orb-pulse rounded-full mb-4"
-        style={{
-          width: 48,
-          height: 48,
-          backgroundColor: aqiState.orbColor,
-          boxShadow: `0 0 24px 8px ${aqiState.orbColor}44`,
-        }}
-        role="img"
-        aria-label={`Air quality orb: ${aqiState.level}`}
-      />
-
-      {/* Bear */}
-      <div className="bear-breathe relative">
+      {/* Bear — the logo's built-in orb serves as the AQI indicator */}
+      <div className="bear-breathe relative" aria-label={`Air quality: ${aqiState.level}`}>
         <Image
           src="/bear-logo.png"
           alt={`Bair1 bear — ${aqiState.level} air quality`}
