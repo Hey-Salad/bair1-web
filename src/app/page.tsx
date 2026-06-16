@@ -210,68 +210,114 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Sensor Product */}
+      {/* Sensor Products */}
       <section id="sensor" className="py-20">
         <div className="max-w-5xl mx-auto px-6">
-          <div className="bg-forest-night rounded-3xl overflow-hidden">
-            <div className="grid sm:grid-cols-2 gap-8 p-8 sm:p-12">
-              <div className="flex flex-col justify-center">
-                <div className="inline-flex items-center gap-2 bg-clean-air/20 rounded-full px-3 py-1 w-fit mb-6">
-                  <div className="w-2 h-2 rounded-full bg-clean-air" />
-                  <span className="text-xs font-medium text-clean-air">Pre-order open</span>
+          <h2 className="text-3xl sm:text-4xl font-bold text-center text-forest-night mb-4">
+            Choose your sensor
+          </h2>
+          <p className="text-center text-forest-night/50 mb-14 max-w-lg mx-auto">
+            Two options. Same bear. Both include WiFi, BLE, OLED display, and 1 year of Bair1 Pro free.
+          </p>
+
+          <div className="grid sm:grid-cols-2 gap-6">
+            {/* Bair1 Lite */}
+            <div className="bg-white rounded-3xl p-8 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-forest-night">Bair1 Lite</h3>
+                  <p className="text-sm text-forest-night/50 mt-0.5">Perfect for home use</p>
                 </div>
-                <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                  Bair1 Sensor Node
-                </h2>
-                <p className="text-fresh-linen/70 leading-relaxed mb-6">
-                  A PM2.5/PM10 particulate sensor that plugs into power, connects to WiFi,
-                  and starts publishing real-time air quality to your dashboard. No configuration needed.
-                </p>
-                <ul className="space-y-3 mb-8">
-                  {[
-                    "PM2.5 & PM10 particulate detection",
-                    "WiFi provisioning via BLE or web portal",
-                    "OLED display with live readings",
-                    "Over-the-air firmware updates",
-                    "Publishes to bair1.live automatically",
-                  ].map((item) => (
-                    <li key={item} className="flex items-start gap-2.5 text-sm text-fresh-linen/80">
-                      <svg className="w-4 h-4 text-clean-air shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                <div className="flex items-end gap-4 mb-6">
-                  <div className="text-3xl font-bold text-white">£49</div>
-                  <div className="text-sm text-fresh-linen/50 mb-1">+ free shipping UK</div>
-                </div>
-                <a
-                  href="mailto:hello@heysalad.app?subject=Bair1%20Sensor%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20sensor%20node."
-                  className="bg-clean-air text-forest-night font-medium px-8 py-3.5 rounded-full text-base hover:bg-clean-air/90 transition-colors text-center w-fit"
-                >
-                  Pre-order Now
-                </a>
+                <Image src="/bear-logo.png" alt="Bair1 Lite" width={56} height={56} className="object-contain" />
               </div>
-              <div className="flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-64 h-64 sm:w-72 sm:h-72 bg-fresh-linen/10 rounded-3xl flex items-center justify-center border border-fresh-linen/10">
-                    <Image
-                      src="/bear-logo.png"
-                      alt="Bair1 sensor"
-                      width={180}
-                      height={180}
-                      className="object-contain opacity-90"
-                    />
-                  </div>
-                  <div className="absolute -top-3 -right-3 bg-clean-air text-forest-night text-xs font-bold px-3 py-1.5 rounded-full">
-                    Ships July 2026
-                  </div>
-                </div>
+              <div className="bg-bair-green/5 rounded-xl px-4 py-3 mb-6">
+                <div className="text-xs font-medium text-bair-green uppercase tracking-wider mb-1">Powered by</div>
+                <div className="text-sm font-bold text-forest-night">Bosch BMV080</div>
+                <div className="text-xs text-forest-night/50">World&apos;s smallest PM sensor — fanless, silent</div>
               </div>
+              <ul className="space-y-2.5 mb-8 flex-1">
+                {[
+                  "PM1, PM2.5 & PM10 detection",
+                  "Fanless — completely silent",
+                  "Ultra-compact design",
+                  "WiFi + BLE connectivity",
+                  "OLED live display",
+                  "Over-the-air updates",
+                  "1 year Bair1 Pro included",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-forest-night/70">
+                    <svg className="w-4 h-4 text-bair-green shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-end gap-3 mb-5">
+                <div className="text-3xl font-bold text-forest-night">£99</div>
+                <div className="text-sm text-forest-night/40 mb-1">+ free UK shipping</div>
+              </div>
+              <a
+                href="mailto:hello@heysalad.app?subject=Bair1%20Lite%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Lite%20sensor."
+                className="bg-bair-green text-white font-medium px-6 py-3 rounded-full text-center hover:bg-bair-green/90 transition-colors"
+              >
+                Pre-order Lite
+              </a>
+            </div>
+
+            {/* Bair1 Pro */}
+            <div className="bg-forest-night rounded-3xl p-8 flex flex-col relative overflow-hidden">
+              <div className="absolute top-4 right-4 bg-clean-air text-forest-night text-xs font-bold px-3 py-1 rounded-full">
+                Most accurate
+              </div>
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-white">Bair1 Pro</h3>
+                  <p className="text-sm text-fresh-linen/50 mt-0.5">Dual-sensor precision</p>
+                </div>
+                <Image src="/bear-logo.png" alt="Bair1 Pro" width={56} height={56} className="object-contain" />
+              </div>
+              <div className="bg-fresh-linen/10 rounded-xl px-4 py-3 mb-6">
+                <div className="text-xs font-medium text-clean-air uppercase tracking-wider mb-1">Powered by</div>
+                <div className="text-sm font-bold text-white">Bosch BMV080 + Plantower PMSA003I</div>
+                <div className="text-xs text-fresh-linen/50">Dual-sensor cross-validation for research-grade accuracy</div>
+              </div>
+              <ul className="space-y-2.5 mb-8 flex-1">
+                {[
+                  "Everything in Lite, plus:",
+                  "Dual-sensor cross-validation",
+                  "Laser + photoacoustic technology",
+                  "Higher accuracy in all conditions",
+                  "Wildfire smoke detection",
+                  "Indoor & outdoor rated",
+                  "1 year Bair1 Pro included",
+                  "API access included",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-fresh-linen/80">
+                    <svg className="w-4 h-4 text-clean-air shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-end gap-3 mb-5">
+                <div className="text-3xl font-bold text-white">£179</div>
+                <div className="text-sm text-fresh-linen/40 mb-1">+ free UK shipping</div>
+              </div>
+              <a
+                href="mailto:hello@heysalad.app?subject=Bair1%20Pro%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Pro%20dual-sensor."
+                className="bg-clean-air text-forest-night font-medium px-6 py-3 rounded-full text-center hover:bg-clean-air/90 transition-colors"
+              >
+                Pre-order Pro
+              </a>
             </div>
           </div>
+
+          {/* Shipping note */}
+          <p className="text-center text-xs text-forest-night/40 mt-8">
+            Both sensors ship July 2026. All pre-orders include 1 year of Bair1 Pro software (worth £59.88). Cancel anytime after.
+          </p>
         </div>
       </section>
 
