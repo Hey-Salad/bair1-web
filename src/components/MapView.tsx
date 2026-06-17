@@ -1,6 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { getAqiColor } from "@/lib/aqi";
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
 interface SensorPin {
   id: string;
@@ -29,6 +34,63 @@ const legend = [
 ];
 
 export default function MapView() {
+  const mapContainer = useRef<HTMLDivElement>(null);
+  const map = useRef<mapboxgl.Map | null>(null);
+
+  useEffect(() => {
+    if (!mapContainer.current || !MAPBOX_TOKEN || map.current) return;
+
+    mapboxgl.accessToken = MAPBOX_TOKEN;
+
+    map.current = new mapboxgl.Map({
+      container: mapContainer.current,
+      style: "mapbox://styles/mapbox/dark-v11",
+      center: [-0.06, 51.525],
+      zoom: 13,
+      attributionControl: false,
+    });
+
+    map.current.addControl(new mapboxgl.NavigationControl(), "top-right");
+
+    map.current.on("load", () => {
+      mockSensors.forEach((sensor) => {
+        const color = getAqiColor(sensor.aqi);
+
+        const el = document.createElement("div");
+        el.className = "bair1-marker";
+        el.style.cssText = `
+          width: 36px; height: 36px; border-radius: 50%;
+          background: ${color}; border: 3px solid rgba(255,255,255,0.9);
+          box-shadow: 0 0 12px ${color}, 0 2px 8px rgba(0,0,0,0.3);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 11px; font-weight: 700; color: #fff;
+          cursor: pointer; transition: transform 0.15s;
+        `;
+        el.textContent = String(sensor.aqi);
+        el.onmouseenter = () => (el.style.transform = "scale(1.2)");
+        el.onmouseleave = () => (el.style.transform = "scale(1)");
+
+        new mapboxgl.Marker({ element: el })
+          .setLngLat([sensor.lng, sensor.lat])
+          .setPopup(
+            new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
+              <div style="font-family: system-ui; padding: 4px 0;">
+                <div style="font-weight: 700; font-size: 14px;">${sensor.name}</div>
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">AQI ${sensor.aqi} · ${sensor.distance} away</div>
+                <div style="font-size: 11px; color: #999; margin-top: 2px;">Updated ${sensor.lastUpdated}</div>
+              </div>
+            `)
+          )
+          .addTo(map.current!);
+      });
+    });
+
+    return () => {
+      map.current?.remove();
+      map.current = null;
+    };
+  }, []);
+
   return (
     <div className="tab-content-enter px-4 pb-28">
       <div className="flex items-center justify-between mb-1">
@@ -39,61 +101,23 @@ export default function MapView() {
       </div>
       <p className="text-sm text-forest-night/50 mb-4">Air quality sensors near you — London</p>
 
-      {/* Map placeholder */}
-      <div className="relative bg-forest-night/5 rounded-2xl overflow-hidden mb-4" style={{ height: 280 }}>
-        {/* Simulated map with sensor dots */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative w-full h-full">
-            {/* Grid lines for map feel */}
-            <svg className="absolute inset-0 w-full h-full opacity-10">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <g key={i}>
-                  <line x1={`${(i + 1) * 20}%`} y1="0" x2={`${(i + 1) * 20}%`} y2="100%" stroke="#1A2410" />
-                  <line x1="0" y1={`${(i + 1) * 20}%`} x2="100%" y2={`${(i + 1) * 20}%`} stroke="#1A2410" />
-                </g>
-              ))}
-            </svg>
-            {/* Sensor dots positioned pseudo-randomly */}
-            {mockSensors.map((sensor, i) => {
-              const positions = [
-                { x: 35, y: 40 },
-                { x: 65, y: 25 },
-                { x: 25, y: 60 },
-                { x: 75, y: 55 },
-                { x: 50, y: 30 },
-                { x: 45, y: 70 },
-              ];
-              const pos = positions[i];
-              return (
-                <div
-                  key={sensor.id}
-                  className="absolute flex flex-col items-center"
-                  style={{ left: `${pos.x}%`, top: `${pos.y}%`, transform: "translate(-50%, -50%)" }}
-                >
-                  <div
-                    className="w-5 h-5 rounded-full border-2 border-white shadow-md"
-                    style={{ backgroundColor: getAqiColor(sensor.aqi) }}
-                  />
-                  <span className="text-[10px] font-medium mt-0.5 bg-white/80 rounded px-1">
-                    {sensor.aqi}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+      {/* Mapbox map */}
+      {MAPBOX_TOKEN ? (
+        <div ref={mapContainer} className="rounded-2xl overflow-hidden mb-4" style={{ height: 320 }} />
+      ) : (
+        <div className="bg-forest-night/5 rounded-2xl flex items-center justify-center mb-4" style={{ height: 320 }}>
+          <p className="text-sm text-muted">Map token not configured</p>
         </div>
+      )}
 
-        {/* Legend overlay */}
-        <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-sm">
-          <div className="flex gap-3">
-            {legend.map((l) => (
-              <div key={l.label} className="flex items-center gap-1">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: l.color }} />
-                <span className="text-[10px] font-medium text-forest-night/70">{l.label}</span>
-              </div>
-            ))}
+      {/* Legend */}
+      <div className="flex gap-3 mb-4 justify-center">
+        {legend.map((l) => (
+          <div key={l.label} className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: l.color }} />
+            <span className="text-xs text-forest-night/60">{l.label}</span>
           </div>
-        </div>
+        ))}
       </div>
 
       {/* Sensor list */}
