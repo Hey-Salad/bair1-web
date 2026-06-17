@@ -236,37 +236,24 @@ export default function LandingPage() {
           {/* Tweet grid */}
           <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
             {[
-              { name: "Maya Avendaño", handle: "@mayvencraft", text: "woah cool to see more hardware projects from you!", verified: true },
-              { name: "Pauline P. Narvas", handle: "@paw_lean", text: "You cooked!", verified: true },
-              { name: "Dom Sip", handle: "@dom_sipowicz", text: "I want to buy it. How much?", verified: true },
-              { name: "Ese Kpeji", handle: "@EseKpeji", text: "Clear the kitchen for this guy 😮", verified: true },
-              { name: "Nima", handle: "@FPLNima", text: "This is super dope Peter 😲🔥 we keep missing each other!", verified: true },
-              { name: "Anselm Eickhoff", handle: "@anselm_io", text: "This is really cool and I love the format but let's just say Mr. Teddy here wouldn't get through TSA looking like that", verified: true },
-              { name: "_Cliffinkent", handle: "@Cliffinkent", text: "This is awesome!", verified: true },
-              { name: "Abdussalam Popoola", handle: "@abdussalampopsy", text: "We met too!!", verified: true },
-              { name: "Henry", handle: "@Histoblogq", text: "Wow 😳", verified: true },
+              { src: "/tweets/maya.jpg", alt: "Tweet from Maya Avendaño: woah cool to see more hardware projects from you!" },
+              { src: "/tweets/pauline.jpg", alt: "Tweet from Pauline P. Narvas: You cooked!" },
+              { src: "/tweets/dom.jpg", alt: "Tweet from Dom Sip: I want to buy it. How much?" },
+              { src: "/tweets/ese.jpg", alt: "Tweet from Ese Kpeji: Clear the kitchen for this guy" },
+              { src: "/tweets/nima.jpg", alt: "Tweet from Nima: This is super dope Peter" },
+              { src: "/tweets/anselm.jpg", alt: "Tweet from Anselm Eickhoff: This is really cool and I love the format" },
+              { src: "/tweets/cliff.jpg", alt: "Tweet from Cliffinkent: This is awesome!" },
+              { src: "/tweets/abdussalam.jpg", alt: "Tweet from Abdussalam Popoola: We met too!!" },
+              { src: "/tweets/henry.jpg", alt: "Tweet from Henry: Wow" },
             ].map((tweet) => (
-              <div key={tweet.handle} className="break-inside-avoid rounded-xl border border-border bg-surface p-5 hover:border-muted/40 transition-colors">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-full bg-muted/20 flex items-center justify-center text-sm font-bold text-muted">
-                    {tweet.name.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm font-bold text-ink truncate">{tweet.name}</span>
-                      {tweet.verified && (
-                        <svg className="w-4 h-4 text-[#1d9bf0] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M22.25 12c0-1.43-.88-2.67-2.19-3.34.46-1.39.2-2.9-.81-3.91s-2.52-1.27-3.91-.81c-.66-1.31-1.91-2.19-3.34-2.19s-2.67.88-3.33 2.19c-1.4-.46-2.91-.2-3.92.81s-1.26 2.52-.8 3.91c-1.31.67-2.2 1.91-2.2 3.34s.89 2.67 2.2 3.34c-.46 1.39-.21 2.9.8 3.91s2.52 1.26 3.91.81c.67 1.31 1.91 2.19 3.34 2.19s2.68-.88 3.34-2.19c1.39.45 2.9.2 3.91-.81s1.27-2.52.81-3.91c1.31-.67 2.19-1.91 2.19-3.34zm-11.71 4.2L6.8 12.46l1.41-1.42 2.26 2.26 4.8-5.23 1.47 1.36-6.2 6.77z" />
-                        </svg>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted truncate">{tweet.handle}</p>
-                  </div>
-                  <svg className="w-4 h-4 text-muted/40 shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                  </svg>
-                </div>
-                <p className="text-sm text-ink leading-relaxed">{tweet.text}</p>
+              <div key={tweet.src} className="break-inside-avoid rounded-xl border border-border overflow-hidden hover:border-muted/40 transition-colors">
+                <Image
+                  src={tweet.src}
+                  alt={tweet.alt}
+                  width={600}
+                  height={300}
+                  className="w-full h-auto"
+                />
               </div>
             ))}
           </div>
