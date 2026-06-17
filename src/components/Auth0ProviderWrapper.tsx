@@ -9,8 +9,8 @@ export default function Auth0ProviderWrapper({
 }) {
   return (
     <Auth0Provider
-      domain="dev-v71n0fw208s2qy8d.us.auth0.com"
-      clientId="JgC92w685FPKvMA2haFiQLpR5viQx3UY"
+      domain={process.env.NEXT_PUBLIC_AUTH0_DOMAIN!}
+      clientId={process.env.NEXT_PUBLIC_AUTH0_CLIENT_ID!}
       authorizationParams={{ redirect_uri: typeof window !== "undefined" ? window.location.origin : "" }}
     >
       {children}

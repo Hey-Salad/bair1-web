@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureTable } from "@/lib/db";
 
-const API_KEY = "7515697f0bdeef36ee980e6758d96ce7ba8d244667f86d060da25aed8a0aa0cc";
+const API_KEY = process.env.SENSOR_API_KEY!;
 
 export async function POST(req: NextRequest) {
   // Auth check
