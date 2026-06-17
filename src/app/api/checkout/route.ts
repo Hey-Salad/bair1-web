@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Payment not configured" }, { status: 500 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2026-05-27.dahlia",
+    });
 
     const origin = req.headers.get("origin") || "https://bair1.live";
 
