@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useAuth0 } from "@auth0/auth0-react";
 import Logo from "@/components/Logo";
 import BearOrb from "@/components/BearOrb";
 import GuidanceStrip from "@/components/GuidanceStrip";
@@ -26,6 +27,21 @@ const DEMO_DATA = {
 };
 
 export default function Dashboard() {
+  const {
+    isLoading,
+    isAuthenticated,
+    error,
+    loginWithRedirect: login,
+    logout: auth0Logout,
+    user,
+  } = useAuth0();
+
+  const signup = () =>
+    login({ authorizationParams: { screen_hint: "signup" } });
+
+  const logout = () =>
+    auth0Logout({ logoutParams: { returnTo: window.location.origin } });
+
   const [tab, setTab] = useState<Tab>("home");
   const [data, setData] = useState(DEMO_DATA);
   const [isLive, setIsLive] = useState(false);
@@ -87,14 +103,62 @@ export default function Dashboard() {
     return () => clearInterval(tick);
   }, [data.lastUpdated]);
 
+  if (isLoading) {
+    return (
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center">
+          <Logo />
+          <p className="text-sm text-muted mt-4">Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <main className="flex-1 flex items-center justify-center px-4">
+        <div className="text-center max-w-sm">
+          <Logo />
+          <h1 className="text-2xl font-bold text-ink mt-6 mb-2">Sign in to Bair1</h1>
+          <p className="text-sm text-muted mb-8">
+            Monitor your air quality in real time. Sign in or create an account to access your dashboard.
+          </p>
+          {error && <p className="text-sm text-red-400 mb-4">Error: {error.message}</p>}
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={() => login()}
+              className="bg-primary text-white font-semibold px-6 py-3 rounded-lg hover:bg-primary-hover transition-colors text-sm"
+            >
+              Log in
+            </button>
+            <button
+              onClick={signup}
+              className="border border-border text-ink font-semibold px-6 py-3 rounded-lg hover:bg-surface transition-colors text-sm"
+            >
+              Sign up
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="flex-1 flex flex-col">
       <header className="sticky top-0 z-40 bg-fresh-linen/90 backdrop-blur-lg border-b border-forest-night/5">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <a href="/"><Logo /></a>
-          <div className="text-right">
-            <div className="text-xs font-medium text-forest-night/70">{data.location}</div>
-            <div className="text-[10px] text-forest-night/40">{lastUpdatedText}</div>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <div className="text-xs font-medium text-forest-night/70">{user?.name ?? data.location}</div>
+              <div className="text-[10px] text-forest-night/40">{lastUpdatedText}</div>
+            </div>
+            <button
+              onClick={logout}
+              className="text-[10px] text-forest-night/40 hover:text-forest-night/70 transition-colors"
+            >
+              Log out
+            </button>
           </div>
         </div>
       </header>
