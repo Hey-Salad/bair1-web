@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import CheckoutButton from "./checkout-button";
 
 const AQI_STATES = [
   { level: "Good", range: "0–50", color: "oklch(0.700 0.160 135)", guidance: "Open windows. Enjoy the air." },
@@ -278,12 +279,12 @@ export default function LandingPage() {
                 <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£99</span>
                 <span className="text-sm text-muted ml-2">free UK shipping</span>
               </div>
-              <a
-                href="mailto:hello@heysalad.app?subject=Bair1%20Lite%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Lite%20(1%20sensor)."
-                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm"
+              <CheckoutButton
+                tier="lite"
+                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm cursor-pointer"
               >
                 Pre-order Lite
-              </a>
+              </CheckoutButton>
             </div>
 
             {/* Pro — recommended */}
@@ -321,12 +322,12 @@ export default function LandingPage() {
                 <span className="text-3xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>£149</span>
                 <span className="text-sm text-white/40 ml-2">free UK shipping</span>
               </div>
-              <a
-                href="mailto:hello@heysalad.app?subject=Bair1%20Pro%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Pro%20(2%20sensors)."
-                className="bg-clean-air text-ink font-semibold px-6 py-3 rounded-lg text-center hover:opacity-90 transition-opacity text-sm"
+              <CheckoutButton
+                tier="pro"
+                className="bg-clean-air text-ink font-semibold px-6 py-3 rounded-lg text-center hover:opacity-90 transition-opacity text-sm cursor-pointer"
               >
                 Pre-order Pro
-              </a>
+              </CheckoutButton>
             </div>
 
             {/* Max */}
@@ -361,12 +362,12 @@ export default function LandingPage() {
                 <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£229</span>
                 <span className="text-sm text-muted ml-2">free UK shipping</span>
               </div>
-              <a
-                href="mailto:hello@heysalad.app?subject=Bair1%20Max%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Max%20(3%20sensors)."
-                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm"
+              <CheckoutButton
+                tier="max"
+                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm cursor-pointer"
               >
                 Pre-order Max
-              </a>
+              </CheckoutButton>
             </div>
           </div>
 
