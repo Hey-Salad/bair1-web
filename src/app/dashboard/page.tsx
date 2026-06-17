@@ -119,9 +119,9 @@ export default function Dashboard() {
       <main className="flex-1 flex items-center justify-center px-4">
         <div className="text-center max-w-sm">
           <Logo />
-          <h1 className="text-2xl font-bold text-ink mt-6 mb-2">Sign in to Bair1</h1>
+          <h1 className="text-2xl font-bold text-ink mt-6 mb-2">Your AI Air Bear</h1>
           <p className="text-sm text-muted mb-8">
-            Monitor your air quality in real time. Sign in or create an account to access your dashboard.
+            Sign in to meet your bear. Real-time air quality, honestly delivered.
           </p>
           {error && <p className="text-sm text-red-400 mb-4">Error: {error.message}</p>}
           <div className="flex flex-col gap-3">
