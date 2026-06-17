@@ -3,22 +3,23 @@
 /* Bricolage Grotesque for display, Figtree for body */
 
 @theme inline {
-  /* OKLCH palette — Committed green strategy */
-  --color-bg: oklch(1.000 0.000 0);
-  --color-surface: oklch(0.970 0.008 145);
-  --color-ink: oklch(0.180 0.030 145);
-  --color-muted: oklch(0.450 0.015 145);
-  --color-primary: oklch(0.500 0.155 140);
-  --color-primary-hover: oklch(0.460 0.155 140);
+  /* OKLCH palette — Dark mode, committed green strategy */
+  --color-bg: oklch(0.100 0.010 145);
+  --color-surface: oklch(0.145 0.015 145);
+  --color-ink: oklch(0.950 0.005 145);
+  --color-muted: oklch(0.600 0.010 145);
+  --color-primary: oklch(0.580 0.170 140);
+  --color-primary-hover: oklch(0.540 0.170 140);
   --color-accent: oklch(0.780 0.145 85);
   --color-accent-dark: oklch(0.600 0.145 85);
+  --color-border: oklch(0.220 0.015 145);
 
-  /* Legacy names for existing components */
-  --color-forest-night: oklch(0.180 0.030 145);
-  --color-bair-green: oklch(0.500 0.155 140);
+  /* Legacy names */
+  --color-forest-night: oklch(0.950 0.005 145);
+  --color-bair-green: oklch(0.580 0.170 140);
   --color-clean-air: oklch(0.720 0.160 135);
   --color-bear-brown: oklch(0.500 0.080 60);
-  --color-fresh-linen: oklch(0.970 0.008 145);
+  --color-fresh-linen: oklch(0.145 0.015 145);
   --color-amber-yellow: oklch(0.820 0.150 85);
   --color-aqi-orange: oklch(0.700 0.170 55);
   --color-aqi-red: oklch(0.550 0.200 25);
@@ -76,16 +77,6 @@ h3 {
   animation: bear-breathe 4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-/* Smooth fade for section reveals */
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.fade-up {
-  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
-}
-
 /* AQI orb glow */
 @keyframes orb-glow {
   0%, 100% { transform: scale(1); }
@@ -99,7 +90,6 @@ h3 {
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .bear-breathe,
-  .fade-up,
   .orb-glow {
     animation: none;
   }

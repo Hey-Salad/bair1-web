@@ -34,7 +34,7 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-bg/95 backdrop-blur-sm">
+      <nav className="sticky top-0 z-50 bg-bg/90 backdrop-blur-md border-b border-border">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
           <Link href="/" className="flex items-center gap-2.5">
             <Image src="/bear-logo.png" alt="Bair1" width={36} height={36} className="object-contain" />
@@ -80,12 +80,12 @@ export default function LandingPage() {
                 </Link>
                 <Link
                   href="#sensor"
-                  className="bg-surface text-ink font-semibold px-7 py-3.5 rounded-lg hover:bg-surface/80 transition-colors"
+                  className="bg-surface text-ink font-semibold px-7 py-3.5 rounded-lg border border-border hover:border-muted transition-colors"
                 >
                   Get a Sensor
                 </Link>
               </div>
-              <p className="text-sm text-muted">
+              <p className="text-sm text-muted/60">
                 Live at bair1.live &middot; London-first &middot; A HeySalad product
               </p>
             </div>
@@ -96,7 +96,7 @@ export default function LandingPage() {
                   alt="The Bair1 sensor — a teddy bear with air quality sensors strapped to its chest"
                   width={480}
                   height={480}
-                  className="object-cover rounded-2xl shadow-2xl"
+                  className="object-cover rounded-2xl"
                   priority
                 />
               </div>
@@ -105,8 +105,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How it works — no numbered markers, just flow */}
-      <section className="py-20 bg-surface">
+      {/* How it works */}
+      <section className="py-20 border-y border-border">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-ink mb-6">How it works</h2>
           <p className="text-muted mb-16 prose-cap text-lg">
@@ -114,7 +114,7 @@ export default function LandingPage() {
           </p>
           <div className="grid sm:grid-cols-3 gap-12">
             <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                 </svg>
@@ -123,7 +123,7 @@ export default function LandingPage() {
               <p className="text-muted leading-relaxed">Connects to WiFi and starts publishing air quality readings automatically.</p>
             </div>
             <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -133,7 +133,7 @@ export default function LandingPage() {
               <p className="text-muted leading-relaxed">Readings appear instantly. The orb colour and expression tell you everything at a glance.</p>
             </div>
             <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-5">
+              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
                 <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -145,7 +145,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Features — 2x2 grid, no icon boxes */}
+      {/* Features */}
       <section className="py-24">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-ink mb-6">Everything at a glance</h2>
@@ -154,7 +154,7 @@ export default function LandingPage() {
           </p>
           <div className="grid sm:grid-cols-2 gap-x-12 gap-y-10">
             {FEATURES.map((f) => (
-              <div key={f.title} className="border-l-2 border-primary/20 pl-6">
+              <div key={f.title} className="border-l-2 border-primary/30 pl-6">
                 <h3 className="text-ink font-bold mb-1.5">{f.title}</h3>
                 <p className="text-muted leading-relaxed">{f.description}</p>
               </div>
@@ -164,20 +164,25 @@ export default function LandingPage() {
       </section>
 
       {/* Origin Story */}
-      <section className="py-24 bg-surface">
+      <section className="py-24 border-y border-border">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid md:grid-cols-2 gap-16 items-center">
             <div>
-              <Image
-                src="/hackathon-badge.avif"
-                alt="Built in London hackathon badge by Luma"
-                width={120}
-                height={120}
-                className="rounded-xl mb-8"
-              />
+              <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer">
+                <Image
+                  src="/hackathon-badge.avif"
+                  alt="Built in London hackathon badge by Luma"
+                  width={120}
+                  height={120}
+                  className="rounded-xl mb-8 hover:opacity-80 transition-opacity"
+                />
+              </a>
               <h2 className="text-ink mb-6">Born at a hackathon.<br />Built for your lungs.</h2>
               <p className="text-muted text-lg leading-relaxed prose-cap mb-6">
-                Bair1 started as a hackathon project at Built in London. The idea was simple:
+                Bair1 started as a hackathon project at{" "}
+                <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+                  Built in London
+                </a>. The idea was simple:
                 take the swag teddy bear, strap an air quality sensor to it, and see what happens.
               </p>
               <p className="text-muted leading-relaxed prose-cap">
@@ -186,7 +191,7 @@ export default function LandingPage() {
                 got a Bosch BMV080, a Plantower laser, an OLED screen, and a mission.
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <Image
                 src="/bear-original.jpg"
                 alt="The original Auth0 hackathon teddy bear sitting on a laptop"
@@ -214,25 +219,25 @@ export default function LandingPage() {
       </section>
 
       {/* AQI States */}
-      <section className="py-24 bg-ink">
+      <section className="py-24">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-white mb-6">Six states. One glance.</h2>
-          <p className="text-white/60 mb-16 prose-cap text-lg leading-relaxed">
+          <h2 className="text-ink mb-6">Six states. One glance.</h2>
+          <p className="text-muted mb-16 prose-cap text-lg leading-relaxed">
             The orb colour and bear expression change with the air. You never need to read a number.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
             {AQI_STATES.map((s) => (
               <div
                 key={s.level}
-                className="rounded-xl p-5 bg-white/5 hover:bg-white/10 transition-colors"
+                className="rounded-xl p-5 bg-surface border border-border hover:border-muted/30 transition-colors"
               >
                 <div
                   className="w-10 h-10 rounded-full mb-4 orb-glow"
-                  style={{ backgroundColor: s.color, boxShadow: `0 0 20px ${s.color}` }}
+                  style={{ backgroundColor: s.color, boxShadow: `0 0 24px ${s.color}` }}
                 />
-                <div className="text-sm font-bold text-white mb-0.5">{s.level}</div>
-                <div className="text-xs text-white/40 mb-3">{s.range} AQI</div>
-                <div className="text-xs text-white/60 leading-relaxed">{s.guidance}</div>
+                <div className="text-sm font-bold text-ink mb-0.5">{s.level}</div>
+                <div className="text-xs text-muted/60 mb-3">{s.range} AQI</div>
+                <div className="text-xs text-muted leading-relaxed">{s.guidance}</div>
               </div>
             ))}
           </div>
@@ -240,7 +245,7 @@ export default function LandingPage() {
       </section>
 
       {/* Sensor Products */}
-      <section id="sensor" className="py-24">
+      <section id="sensor" className="py-24 border-y border-border">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-ink mb-6">Same bear. You choose the brains.</h2>
           <p className="text-muted mb-16 prose-cap text-lg">
@@ -249,12 +254,12 @@ export default function LandingPage() {
 
           <div className="grid md:grid-cols-3 gap-6">
             {/* Lite */}
-            <div className="rounded-2xl border border-ink/8 p-7 flex flex-col">
+            <div className="rounded-2xl border border-border p-7 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-ink font-bold">Bair1 Lite</h3>
                 <p className="text-sm text-muted mt-0.5">1 sensor</p>
               </div>
-              <div className="bg-surface rounded-lg px-4 py-3 mb-6">
+              <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
                 <div className="text-sm font-bold text-ink">Bosch BMV080</div>
                 <div className="text-xs text-muted mt-0.5">Photoacoustic — fanless &amp; silent</div>
               </div>
@@ -281,24 +286,24 @@ export default function LandingPage() {
               </div>
               <CheckoutButton
                 tier="lite"
-                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm cursor-pointer"
+                className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
               >
                 Pre-order Lite
               </CheckoutButton>
             </div>
 
             {/* Pro — recommended */}
-            <div className="rounded-2xl bg-ink p-7 flex flex-col relative md:scale-[1.03]">
-              <div className="absolute top-5 right-5 bg-accent text-ink text-xs font-bold px-3 py-1 rounded-full">
+            <div className="rounded-2xl bg-primary/10 border border-primary/30 p-7 flex flex-col relative md:scale-[1.03]">
+              <div className="absolute top-5 right-5 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
                 Recommended
               </div>
               <div className="mb-6">
-                <h3 className="text-white font-bold">Bair1 Pro</h3>
-                <p className="text-sm text-white/50 mt-0.5">2 sensors</p>
+                <h3 className="text-ink font-bold">Bair1 Pro</h3>
+                <p className="text-sm text-muted mt-0.5">2 sensors</p>
               </div>
-              <div className="bg-white/8 rounded-lg px-4 py-3 mb-6">
-                <div className="text-sm font-bold text-white">BMV080 + PMSA003I</div>
-                <div className="text-xs text-white/50 mt-0.5">Photoacoustic + laser cross-validation</div>
+              <div className="bg-bg rounded-lg px-4 py-3 mb-6 border border-border">
+                <div className="text-sm font-bold text-ink">BMV080 + PMSA003I</div>
+                <div className="text-xs text-muted mt-0.5">Photoacoustic + laser cross-validation</div>
               </div>
               <ul className="space-y-2.5 mb-8 flex-1">
                 {[
@@ -310,8 +315,8 @@ export default function LandingPage() {
                   "API access included",
                   "1 year Pro software free",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-white/70">
-                    <svg className="w-4 h-4 text-clean-air shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                  <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
+                    <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
                     {item}
@@ -319,24 +324,24 @@ export default function LandingPage() {
                 ))}
               </ul>
               <div className="mb-5">
-                <span className="text-3xl font-bold text-white" style={{ fontFamily: 'var(--font-display)' }}>£149</span>
-                <span className="text-sm text-white/40 ml-2">free UK shipping</span>
+                <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£149</span>
+                <span className="text-sm text-muted ml-2">free UK shipping</span>
               </div>
               <CheckoutButton
                 tier="pro"
-                className="bg-clean-air text-ink font-semibold px-6 py-3 rounded-lg text-center hover:opacity-90 transition-opacity text-sm cursor-pointer"
+                className="bg-primary text-white font-semibold px-6 py-3 rounded-lg text-center hover:bg-primary-hover transition-colors text-sm cursor-pointer"
               >
                 Pre-order Pro
               </CheckoutButton>
             </div>
 
             {/* Max */}
-            <div className="rounded-2xl border border-ink/8 p-7 flex flex-col">
+            <div className="rounded-2xl border border-border p-7 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-ink font-bold">Bair1 Max</h3>
                 <p className="text-sm text-muted mt-0.5">3 sensors</p>
               </div>
-              <div className="bg-surface rounded-lg px-4 py-3 mb-6">
+              <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
                 <div className="text-sm font-bold text-ink">BMV080 + PMSA003I + SPS30</div>
                 <div className="text-xs text-muted mt-0.5">Triple-sensor, research-grade precision</div>
               </div>
@@ -364,21 +369,21 @@ export default function LandingPage() {
               </div>
               <CheckoutButton
                 tier="max"
-                className="border border-ink/10 text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface transition-colors text-sm cursor-pointer"
+                className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
               >
                 Pre-order Max
               </CheckoutButton>
             </div>
           </div>
 
-          <p className="text-center text-sm text-muted mt-10">
+          <p className="text-center text-sm text-muted/60 mt-10">
             All models ship July 2026. Pre-orders include 1 year of Bair1 Pro software (worth £59.88).
           </p>
         </div>
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-surface">
+      <section className="py-24">
         <div className="max-w-3xl mx-auto px-6 text-center">
           <h2 className="text-ink mb-4">Ready to know your air?</h2>
           <p className="text-muted text-lg mb-10">Open the live dashboard or grab a sensor for your neighbourhood.</p>
@@ -391,7 +396,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="#sensor"
-              className="bg-ink/5 text-ink font-semibold px-8 py-3.5 rounded-lg hover:bg-ink/10 transition-colors"
+              className="bg-surface text-ink font-semibold px-8 py-3.5 rounded-lg border border-border hover:border-muted transition-colors"
             >
               Get a Sensor
             </Link>
@@ -400,7 +405,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-10">
+      <footer className="py-10 border-t border-border">
         <div className="max-w-6xl mx-auto px-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
@@ -412,10 +417,10 @@ export default function LandingPage() {
             <div className="flex items-center gap-6 text-sm text-muted">
               <Link href="/dashboard" className="hover:text-ink transition-colors">Dashboard</Link>
               <a href="mailto:hello@heysalad.app" className="hover:text-ink transition-colors">Contact</a>
-              <span className="text-ink/20">bair1.live</span>
+              <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="hover:text-ink transition-colors">Built in London</a>
             </div>
           </div>
-          <div className="mt-8 text-center text-xs text-ink/25">
+          <div className="mt-8 text-center text-xs text-muted/40">
             &copy; {new Date().getFullYear()} HeySalad. Know your air.
           </div>
         </div>
