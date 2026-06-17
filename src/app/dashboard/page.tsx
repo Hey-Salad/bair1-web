@@ -145,17 +145,17 @@ export default function Dashboard() {
 
   return (
     <main className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-40 bg-fresh-linen/90 backdrop-blur-lg border-b border-forest-night/5">
+      <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-lg border-b border-border">
         <div className="max-w-lg mx-auto flex items-center justify-between px-4 py-3">
           <a href="/"><Logo /></a>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <div className="text-xs font-medium text-forest-night/70">{user?.name ?? data.location}</div>
-              <div className="text-[10px] text-forest-night/40">{lastUpdatedText}</div>
+              <div className="text-xs font-medium text-ink/70">{user?.name ?? data.location}</div>
+              <div className="text-[10px] text-muted/60">{lastUpdatedText}</div>
             </div>
             <button
               onClick={logout}
-              className="text-[10px] text-forest-night/40 hover:text-forest-night/70 transition-colors"
+              className="text-[10px] text-muted/60 hover:text-ink/70 transition-colors"
             >
               Log out
             </button>
@@ -175,8 +175,8 @@ export default function Dashboard() {
             <GuidanceStrip aqiState={aqiState} />
             <PmStats pm25={data.pm25} pm10={data.pm10} />
 
-            <div className="w-full max-w-sm bg-white/60 rounded-xl px-4 py-3 text-center">
-              <div className="text-xs text-forest-night/40">
+            <div className="w-full max-w-sm bg-surface border border-border rounded-xl px-4 py-3 text-center">
+              <div className="text-xs text-muted/60">
                 {isLive
                   ? `Sensor ${data.sensorId.slice(-4)} · Bair1 Node`
                   : "No sensor connected · Showing demo data"}

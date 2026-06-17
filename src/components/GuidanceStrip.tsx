@@ -8,13 +8,13 @@ export default function GuidanceStrip({ aqiState }: { aqiState: AqiState }) {
       {aqiState.guidance.map((tip, i) => (
         <div
           key={i}
-          className="flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-xl px-4 py-3 shadow-sm"
+          className="flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3"
         >
           <div
             className="w-2 h-2 rounded-full shrink-0"
             style={{ backgroundColor: aqiState.orbColor }}
           />
-          <span className="text-sm font-medium text-forest-night/80">{tip}</span>
+          <span className="text-sm font-medium text-ink/80">{tip}</span>
         </div>
       ))}
     </div>

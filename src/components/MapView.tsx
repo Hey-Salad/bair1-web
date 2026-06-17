@@ -99,7 +99,7 @@ export default function MapView() {
           Demo
         </span>
       </div>
-      <p className="text-sm text-forest-night/50 mb-4">Air quality sensors near you — London</p>
+      <p className="text-sm text-muted mb-4">Air quality sensors near you — London</p>
 
       {/* Mapbox map */}
       {MAPBOX_TOKEN ? (
@@ -115,7 +115,7 @@ export default function MapView() {
         {legend.map((l) => (
           <div key={l.label} className="flex items-center gap-1.5">
             <div className="w-3 h-3 rounded-full" style={{ backgroundColor: l.color }} />
-            <span className="text-xs text-forest-night/60">{l.label}</span>
+            <span className="text-xs text-muted/70">{l.label}</span>
           </div>
         ))}
       </div>
@@ -125,7 +125,7 @@ export default function MapView() {
         {mockSensors.map((sensor) => (
           <div
             key={sensor.id}
-            className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm"
+            className="flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3"
           >
             <div
               className="w-4 h-4 rounded-full shrink-0 shadow-sm"
@@ -133,7 +133,7 @@ export default function MapView() {
             />
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium">{sensor.name}</div>
-              <div className="text-xs text-forest-night/50">
+              <div className="text-xs text-muted">
                 {sensor.distance} away · {sensor.lastUpdated}
               </div>
             </div>

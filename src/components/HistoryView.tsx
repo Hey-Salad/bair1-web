@@ -27,21 +27,21 @@ export default function HistoryView() {
   return (
     <div className="tab-content-enter px-4 pb-28">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="text-xl font-bold">7-Day History</h2>
+        <h2 className="text-xl font-bold text-ink">7-Day History</h2>
         <span className="text-[10px] font-medium bg-amber-yellow/15 text-amber-yellow/80 rounded-full px-2 py-0.5">
           Demo
         </span>
       </div>
-      <p className="text-sm text-forest-night/50 mb-6">Air quality trends for your area</p>
+      <p className="text-sm text-muted mb-6">Air quality trends for your area</p>
 
       {/* Bar chart */}
-      <div className="bg-white rounded-2xl p-5 shadow-sm mb-5">
+      <div className="bg-surface border border-border rounded-2xl p-5 mb-5">
         <div className="flex items-end justify-between gap-2" style={{ height: 160 }}>
           {mockHistory.map((d, i) => {
             const height = Math.max((d.peak / maxPeak) * 130, 12);
             return (
               <div key={i} className="flex flex-col items-center flex-1 gap-1.5">
-                <span className="text-xs font-medium text-forest-night/70">{d.peak}</span>
+                <span className="text-xs font-medium text-muted">{d.peak}</span>
                 <div
                   className="bar-grow w-full rounded-t-lg"
                   style={{
@@ -50,7 +50,7 @@ export default function HistoryView() {
                     animationDelay: `${i * 0.08}s`,
                   }}
                 />
-                <span className="text-xs text-forest-night/50">{d.day}</span>
+                <span className="text-xs text-muted/60">{d.day}</span>
               </div>
             );
           })}
@@ -59,13 +59,13 @@ export default function HistoryView() {
 
       {/* Callouts */}
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <div className="bg-clean-air/15 rounded-xl p-3">
+        <div className="bg-clean-air/15 border border-clean-air/20 rounded-xl p-3">
           <div className="text-xs font-medium text-bair-green mb-1">Best Day</div>
-          <div className="text-sm font-bold">{best.day} — AQI {best.peak}</div>
+          <div className="text-sm font-bold text-ink">{best.day} — AQI {best.peak}</div>
         </div>
-        <div className="bg-aqi-orange/15 rounded-xl p-3">
+        <div className="bg-aqi-orange/15 border border-aqi-orange/20 rounded-xl p-3">
           <div className="text-xs font-medium text-aqi-orange mb-1">Worst Spike</div>
-          <div className="text-sm font-bold">{worst.day} — AQI {worst.peak}</div>
+          <div className="text-sm font-bold text-ink">{worst.day} — AQI {worst.peak}</div>
         </div>
       </div>
 
@@ -74,17 +74,17 @@ export default function HistoryView() {
         {mockHistory.map((d, i) => (
           <div
             key={i}
-            className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm"
+            className="flex items-center gap-3 bg-surface border border-border rounded-xl px-4 py-3"
           >
             <div
               className="w-3 h-3 rounded-full shrink-0"
               style={{ backgroundColor: getAqiColor(d.peak) }}
             />
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium">
+              <div className="text-sm font-medium text-ink">
                 {d.day}, {d.date}
               </div>
-              <div className="text-xs text-forest-night/50 truncate">{d.description}</div>
+              <div className="text-xs text-muted truncate">{d.description}</div>
             </div>
             <div className="text-sm font-bold" style={{ color: getAqiColor(d.peak) }}>
               {d.peak}
