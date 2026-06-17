@@ -219,22 +219,46 @@ export default function LandingPage() {
       </section>
 
       {/* Social Proof */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="py-16 sm:py-24">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6">
           {/* Loved by developers */}
           <div className="text-center mb-6">
-            <p className="text-sm font-semibold tracking-widest uppercase text-primary mb-3">Social Proof</p>
-            <h2 className="text-ink mb-4">Loved by developers</h2>
-            <div className="flex items-center justify-center gap-8 mt-6 mb-16 opacity-50">
-              {/* Company logos as text badges */}
+            <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-primary mb-2 sm:mb-3">Social Proof</p>
+            <h2 className="text-ink mb-3 sm:mb-4">Loved by developers</h2>
+            <div className="flex items-center justify-center gap-6 sm:gap-8 mt-4 sm:mt-6 mb-10 sm:mb-16 opacity-50">
               {["OpenAI", "Auth0", "Vercel"].map((company) => (
-                <span key={company} className="text-sm font-bold tracking-wide text-muted">{company}</span>
+                <span key={company} className="text-xs sm:text-sm font-bold tracking-wide text-muted">{company}</span>
               ))}
             </div>
           </div>
 
-          {/* Tweet grid */}
-          <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+          {/* Tweet grid — horizontal scroll on mobile, masonry on larger */}
+          <div className="sm:hidden -mx-4 px-4 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-3 w-max pb-4">
+              {[
+                { src: "/tweets/maya.jpg", alt: "Tweet from Maya Avendaño: woah cool to see more hardware projects from you!" },
+                { src: "/tweets/pauline.jpg", alt: "Tweet from Pauline P. Narvas: You cooked!" },
+                { src: "/tweets/dom.jpg", alt: "Tweet from Dom Sip: I want to buy it. How much?" },
+                { src: "/tweets/ese.jpg", alt: "Tweet from Ese Kpeji: Clear the kitchen for this guy" },
+                { src: "/tweets/nima.jpg", alt: "Tweet from Nima: This is super dope Peter" },
+                { src: "/tweets/anselm.jpg", alt: "Tweet from Anselm Eickhoff: This is really cool and I love the format" },
+                { src: "/tweets/cliff.jpg", alt: "Tweet from Cliffinkent: This is awesome!" },
+                { src: "/tweets/abdussalam.jpg", alt: "Tweet from Abdussalam Popoola: We met too!!" },
+                { src: "/tweets/henry.jpg", alt: "Tweet from Henry: Wow" },
+              ].map((tweet) => (
+                <div key={tweet.src} className="shrink-0 w-72 rounded-xl border border-border overflow-hidden">
+                  <Image
+                    src={tweet.src}
+                    alt={tweet.alt}
+                    width={600}
+                    height={300}
+                    className="w-full h-auto"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="hidden sm:block columns-2 lg:columns-3 gap-4 space-y-4">
             {[
               { src: "/tweets/maya.jpg", alt: "Tweet from Maya Avendaño: woah cool to see more hardware projects from you!" },
               { src: "/tweets/pauline.jpg", alt: "Tweet from Pauline P. Narvas: You cooked!" },
