@@ -49,16 +49,16 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
 
 export default function Navigation({ active, onChange }: NavigationProps) {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-forest-night/10 z-50">
-      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-4">
+    <nav className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-lg border-t border-border z-50">
+      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-4 safe-bottom">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => onChange(tab.id)}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
               active === tab.id
-                ? "text-bair-green"
-                : "text-forest-night/40 hover:text-forest-night/60"
+                ? "text-primary"
+                : "text-muted/50 hover:text-muted"
             }`}
             aria-label={tab.label}
             aria-current={active === tab.id ? "page" : undefined}
