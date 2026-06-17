@@ -89,13 +89,13 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex items-center justify-center">
-              <div className="bear-breathe">
+              <div className="relative">
                 <Image
-                  src="/bear-logo.png"
-                  alt="Bair1 bear sniffing the air"
-                  width={320}
-                  height={320}
-                  className="object-contain drop-shadow-xl"
+                  src="/bear-sensor-front.jpg"
+                  alt="The Bair1 sensor — a teddy bear with air quality sensors strapped to its chest"
+                  width={480}
+                  height={480}
+                  className="object-cover rounded-2xl shadow-2xl"
                   priority
                 />
               </div>
@@ -158,6 +158,56 @@ export default function LandingPage() {
                 <p className="text-muted leading-relaxed">{f.description}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Origin Story */}
+      <section className="py-24 bg-surface">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid md:grid-cols-2 gap-16 items-center">
+            <div>
+              <Image
+                src="/hackathon-badge.avif"
+                alt="Built in London hackathon badge by Luma"
+                width={120}
+                height={120}
+                className="rounded-xl mb-8"
+              />
+              <h2 className="text-ink mb-6">Born at a hackathon.<br />Built for your lungs.</h2>
+              <p className="text-muted text-lg leading-relaxed prose-cap mb-6">
+                Bair1 started as a hackathon project at Built in London. The idea was simple:
+                take the swag teddy bear, strap an air quality sensor to it, and see what happens.
+              </p>
+              <p className="text-muted leading-relaxed prose-cap">
+                Turns out a bear that sniffs the air and tells you whether to open the window
+                is something people actually want. So we kept building. The Auth0 teddy
+                got a Bosch BMV080, a Plantower laser, an OLED screen, and a mission.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Image
+                src="/bear-original.jpg"
+                alt="The original Auth0 hackathon teddy bear sitting on a laptop"
+                width={400}
+                height={500}
+                className="object-cover rounded-xl col-span-2 w-full h-64 sm:h-80"
+              />
+              <Image
+                src="/bear-sensor-front.jpg"
+                alt="The bear with sensors attached — front view"
+                width={400}
+                height={400}
+                className="object-cover rounded-xl w-full h-40 sm:h-52"
+              />
+              <Image
+                src="/bear-sensor-angle.jpg"
+                alt="The bear with sensors attached — angle view showing wiring"
+                width={400}
+                height={400}
+                className="object-cover rounded-xl w-full h-40 sm:h-52"
+              />
+            </div>
           </div>
         </div>
       </section>
