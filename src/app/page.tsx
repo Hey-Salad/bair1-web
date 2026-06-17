@@ -44,7 +44,7 @@ export default function LandingPage() {
           </Link>
           <div className="flex items-center gap-4">
             <Link
-              href="/dashboard"
+              href="https://app.bair1.live"
               className="text-sm font-medium text-muted hover:text-ink transition-colors hidden sm:block"
             >
               Dashboard
@@ -73,7 +73,7 @@ export default function LandingPage() {
               </p>
               <div className="flex flex-wrap gap-3 mb-10">
                 <Link
-                  href="/dashboard"
+                  href="https://app.bair1.live"
                   className="bg-primary text-white font-semibold px-7 py-3.5 rounded-lg hover:bg-primary-hover transition-colors"
                 >
                   Open Dashboard
@@ -454,7 +454,7 @@ export default function LandingPage() {
           <p className="text-muted text-lg mb-10">Open the live dashboard or grab a sensor for your neighbourhood.</p>
           <div className="flex flex-wrap gap-3 justify-center">
             <Link
-              href="/dashboard"
+              href="https://app.bair1.live"
               className="bg-primary text-white font-semibold px-8 py-3.5 rounded-lg hover:bg-primary-hover transition-colors"
             >
               Open Dashboard
@@ -480,7 +480,7 @@ export default function LandingPage() {
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted">
-              <Link href="/dashboard" className="hover:text-ink transition-colors">Dashboard</Link>
+              <Link href="https://app.bair1.live" className="hover:text-ink transition-colors">Dashboard</Link>
               <a href="mailto:hello@heysalad.app" className="hover:text-ink transition-colors">Contact</a>
               <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="hover:text-ink transition-colors">Built in London</a>
             </div>

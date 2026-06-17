@@ -14,11 +14,10 @@ export function middleware(request: NextRequest) {
     // All other routes on app subdomain pass through normally
   }
 
-  // bair1.live/dashboard → redirect to app.bair1.live (once subdomain is live)
-  // Uncomment this when app.bair1.live is confirmed working:
-  // if (!host.startsWith("app.") && pathname.startsWith("/dashboard")) {
-  //   return NextResponse.redirect(new URL(pathname, `https://app.${host}`));
-  // }
+  // bair1.live/dashboard → redirect to app.bair1.live
+  if (!host.startsWith("app.") && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect("https://app.bair1.live");
+  }
 
   return NextResponse.next();
 }
