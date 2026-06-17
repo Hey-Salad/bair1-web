@@ -85,10 +85,21 @@ export default function LandingPage() {
                   Get a Sensor
                 </Link>
               </div>
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted/40 font-medium">
-                {["Vercel", "Auth0", "OpenAI", "ElevenLabs"].map((name) => (
-                  <span key={name}>{name}</span>
-                ))}
+              <div className="flex items-center gap-5">
+                <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer">
+                  <Image
+                    src="/hackathon-badge.avif"
+                    alt="Built in London hackathon badge"
+                    width={48}
+                    height={48}
+                    className="rounded-lg hover:opacity-80 transition-opacity"
+                  />
+                </a>
+                <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted/40 font-medium">
+                  {["Vercel", "Auth0", "OpenAI", "ElevenLabs"].map((name) => (
+                    <span key={name}>{name}</span>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-center">
