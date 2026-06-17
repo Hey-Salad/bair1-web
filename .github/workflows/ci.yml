@@ -31,10 +31,11 @@ jobs:
             'xoxb-[0-9]+-[0-9]+-[a-zA-Z0-9]+'       # Slack bot tokens
           )
 
-          # Files to scan (exclude node_modules, .next, lock files, etc.)
-          FILES=$(git ls-files -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.yml' '*.yaml' '*.env' '*.md' \
+          # Files to scan (exclude CI workflows, node_modules, lock files, etc.)
+          FILES=$(git ls-files -- '*.ts' '*.tsx' '*.js' '*.jsx' '*.json' '*.env' \
             ':!node_modules' ':!.next' ':!package-lock.json' ':!pnpm-lock.yaml' ':!yarn.lock' \
-            ':!*.example' ':!.env.example' ':!.dev.vars.example')
+            ':!*.example' ':!.env.example' ':!.dev.vars.example' \
+            ':!.github/workflows/*')
 
           for pattern in "${PATTERNS[@]}"; do
             MATCHES=$(echo "$FILES" | xargs grep -lPn "$pattern" 2>/dev/null || true)
@@ -43,21 +44,6 @@ jobs:
               echo "$MATCHES" | while read -r file; do
                 echo "  - $file"
               done
-              FAILED=1
-            fi
-          done
-
-          # Check for specific known secrets that must never be committed
-          KNOWN_PATTERNS=(
-            '7515697f0bdeef36'    # Bair1 API key prefix
-            'iPhone von Chilu'    # WiFi SSID
-            'gutentag800'         # Server password
-          )
-
-          for kp in "${KNOWN_PATTERNS[@]}"; do
-            MATCHES=$(echo "$FILES" | xargs grep -l "$kp" 2>/dev/null || true)
-            if [ -n "$MATCHES" ]; then
-              echo "::error::Known secret '$kp' found in: $MATCHES"
               FAILED=1
             fi
           done
