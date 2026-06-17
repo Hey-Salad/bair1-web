@@ -1,22 +1,35 @@
 @import "tailwindcss";
 
-/* Outfit for headings, DM Sans for body */
+/* Bricolage Grotesque for display, Figtree for body */
 
 @theme inline {
-  --color-forest-night: #1A2410;
-  --color-bair-green: #4A8A1A;
-  --color-clean-air: #8DC44A;
-  --color-bear-brown: #8C6234;
-  --color-fresh-linen: #F2F4F0;
-  --color-amber-yellow: #F5C542;
-  --color-aqi-orange: #ED8B00;
-  --color-aqi-red: #D63031;
-  --color-aqi-purple: #6C3483;
-  --color-aqi-grey: #4A4A4A;
-  --color-background: var(--color-fresh-linen);
-  --color-foreground: var(--color-forest-night);
-  --font-sans: 'DM Sans', system-ui, sans-serif;
-  --font-display: 'Outfit', system-ui, sans-serif;
+  /* OKLCH palette — Committed green strategy */
+  --color-bg: oklch(1.000 0.000 0);
+  --color-surface: oklch(0.970 0.008 145);
+  --color-ink: oklch(0.180 0.030 145);
+  --color-muted: oklch(0.450 0.015 145);
+  --color-primary: oklch(0.500 0.155 140);
+  --color-primary-hover: oklch(0.460 0.155 140);
+  --color-accent: oklch(0.780 0.145 85);
+  --color-accent-dark: oklch(0.600 0.145 85);
+
+  /* Legacy names for existing components */
+  --color-forest-night: oklch(0.180 0.030 145);
+  --color-bair-green: oklch(0.500 0.155 140);
+  --color-clean-air: oklch(0.720 0.160 135);
+  --color-bear-brown: oklch(0.500 0.080 60);
+  --color-fresh-linen: oklch(0.970 0.008 145);
+  --color-amber-yellow: oklch(0.820 0.150 85);
+  --color-aqi-orange: oklch(0.700 0.170 55);
+  --color-aqi-red: oklch(0.550 0.200 25);
+  --color-aqi-purple: oklch(0.400 0.150 310);
+  --color-aqi-grey: oklch(0.350 0.000 0);
+
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+
+  --font-sans: 'Figtree', system-ui, sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
 }
 
 * {
@@ -32,45 +45,67 @@ body {
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);
+  text-wrap: balance;
 }
 
-/* AQI orb pulse animation */
-@keyframes orb-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.08); opacity: 0.85; }
+/* Fluid type scale — 1.25 ratio */
+h1 {
+  font-size: clamp(2.25rem, 5vw + 1rem, 4rem);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
-.orb-pulse {
-  animation: orb-pulse 3s ease-in-out infinite;
+h2 {
+  font-size: clamp(1.75rem, 3vw + 0.5rem, 2.75rem);
+  letter-spacing: -0.015em;
+  line-height: 1.15;
 }
 
-/* Gentle bear breathing */
+h3 {
+  font-size: clamp(1.125rem, 1.5vw + 0.5rem, 1.5rem);
+  line-height: 1.25;
+}
+
+/* Bear breathing — exponential ease out */
 @keyframes bear-breathe {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+  50% { transform: translateY(-4px); }
 }
 
 .bear-breathe {
-  animation: bear-breathe 4s ease-in-out infinite;
+  animation: bear-breathe 4s cubic-bezier(0.16, 1, 0.3, 1) infinite;
 }
 
-/* Tab transition */
-.tab-content-enter {
-  animation: fadeIn 0.3s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
+/* Smooth fade for section reveals */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Bar chart animation */
-@keyframes growUp {
-  from { transform: scaleY(0); }
-  to { transform: scaleY(1); }
+.fade-up {
+  animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.bar-grow {
-  animation: growUp 0.6s ease-out forwards;
-  transform-origin: bottom;
+/* AQI orb glow */
+@keyframes orb-glow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.orb-glow {
+  animation: orb-glow 3s cubic-bezier(0.16, 1, 0.3, 1) infinite;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .bear-breathe,
+  .fade-up,
+  .orb-glow {
+    animation: none;
+  }
+}
+
+/* Body text line-length cap */
+.prose-cap {
+  max-width: 65ch;
 }
