@@ -212,40 +212,39 @@ export default function LandingPage() {
 
       {/* Sensor Products */}
       <section id="sensor" className="py-20">
-        <div className="max-w-5xl mx-auto px-6">
+        <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl sm:text-4xl font-bold text-center text-forest-night mb-4">
-            Choose your sensor
+            Same bear. You choose the brains.
           </h2>
           <p className="text-center text-forest-night/50 mb-14 max-w-lg mx-auto">
-            Two options. Same bear. Both include WiFi, BLE, OLED display, and 1 year of Bair1 Pro free.
+            Every Bair1 includes WiFi, BLE, OLED display, and 1 year of Bair1 Pro software free.
           </p>
 
-          <div className="grid sm:grid-cols-2 gap-6">
-            {/* Bair1 Lite */}
-            <div className="bg-white rounded-3xl p-8 shadow-sm flex flex-col">
-              <div className="flex items-center justify-between mb-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Bair1 Lite — 1 sensor */}
+            <div className="bg-white rounded-3xl p-7 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-xl font-bold text-forest-night">Bair1 Lite</h3>
-                  <p className="text-sm text-forest-night/50 mt-0.5">Perfect for home use</p>
+                  <h3 className="text-lg font-bold text-forest-night">Bair1 Lite</h3>
+                  <p className="text-xs text-forest-night/50 mt-0.5">1 sensor</p>
                 </div>
-                <Image src="/bear-logo.png" alt="Bair1 Lite" width={56} height={56} className="object-contain" />
+                <Image src="/bear-logo.png" alt="Bair1 Lite" width={48} height={48} className="object-contain" />
               </div>
-              <div className="bg-bair-green/5 rounded-xl px-4 py-3 mb-6">
-                <div className="text-xs font-medium text-bair-green uppercase tracking-wider mb-1">Powered by</div>
+              <div className="bg-bair-green/5 rounded-xl px-4 py-3 mb-5">
+                <div className="text-xs font-medium text-bair-green uppercase tracking-wider mb-1">Sensor</div>
                 <div className="text-sm font-bold text-forest-night">Bosch BMV080</div>
-                <div className="text-xs text-forest-night/50">World&apos;s smallest PM sensor — fanless, silent</div>
+                <div className="text-xs text-forest-night/50">Photoacoustic — fanless &amp; silent</div>
               </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
+              <ul className="space-y-2 mb-7 flex-1">
                 {[
-                  "PM1, PM2.5 & PM10 detection",
+                  "PM1, PM2.5 & PM10",
                   "Fanless — completely silent",
-                  "Ultra-compact design",
                   "WiFi + BLE connectivity",
                   "OLED live display",
                   "Over-the-air updates",
-                  "1 year Bair1 Pro included",
+                  "1 year Pro software free",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-forest-night/70">
+                  <li key={item} className="flex items-start gap-2 text-sm text-forest-night/70">
                     <svg className="w-4 h-4 text-bair-green shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -253,47 +252,46 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <div className="flex items-end gap-3 mb-5">
+              <div className="flex items-end gap-2 mb-4">
                 <div className="text-3xl font-bold text-forest-night">£99</div>
-                <div className="text-sm text-forest-night/40 mb-1">+ free UK shipping</div>
+                <div className="text-xs text-forest-night/40 mb-1">free UK shipping</div>
               </div>
               <a
-                href="mailto:hello@heysalad.app?subject=Bair1%20Lite%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Lite%20sensor."
-                className="bg-bair-green text-white font-medium px-6 py-3 rounded-full text-center hover:bg-bair-green/90 transition-colors"
+                href="mailto:hello@heysalad.app?subject=Bair1%20Lite%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Lite%20(1%20sensor)."
+                className="bg-forest-night/10 text-forest-night font-medium px-6 py-3 rounded-full text-center hover:bg-forest-night/15 transition-colors text-sm"
               >
                 Pre-order Lite
               </a>
             </div>
 
-            {/* Bair1 Pro */}
-            <div className="bg-forest-night rounded-3xl p-8 flex flex-col relative overflow-hidden">
+            {/* Bair1 Pro — 2 sensors (recommended) */}
+            <div className="bg-forest-night rounded-3xl p-7 flex flex-col relative overflow-hidden ring-2 ring-clean-air/50 md:scale-105">
               <div className="absolute top-4 right-4 bg-clean-air text-forest-night text-xs font-bold px-3 py-1 rounded-full">
-                Most accurate
+                Recommended
               </div>
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-5">
                 <div>
-                  <h3 className="text-xl font-bold text-white">Bair1 Pro</h3>
-                  <p className="text-sm text-fresh-linen/50 mt-0.5">Dual-sensor precision</p>
+                  <h3 className="text-lg font-bold text-white">Bair1 Pro</h3>
+                  <p className="text-xs text-fresh-linen/50 mt-0.5">2 sensors</p>
                 </div>
-                <Image src="/bear-logo.png" alt="Bair1 Pro" width={56} height={56} className="object-contain" />
+                <Image src="/bear-logo.png" alt="Bair1 Pro" width={48} height={48} className="object-contain" />
               </div>
-              <div className="bg-fresh-linen/10 rounded-xl px-4 py-3 mb-6">
-                <div className="text-xs font-medium text-clean-air uppercase tracking-wider mb-1">Powered by</div>
-                <div className="text-sm font-bold text-white">Bosch BMV080 + Plantower PMSA003I</div>
-                <div className="text-xs text-fresh-linen/50">Dual-sensor cross-validation for research-grade accuracy</div>
+              <div className="bg-fresh-linen/10 rounded-xl px-4 py-3 mb-5">
+                <div className="text-xs font-medium text-clean-air uppercase tracking-wider mb-1">Sensors</div>
+                <div className="text-sm font-bold text-white">BMV080 + PMSA003I</div>
+                <div className="text-xs text-fresh-linen/50">Photoacoustic + laser cross-validation</div>
               </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
+              <ul className="space-y-2 mb-7 flex-1">
                 {[
                   "Everything in Lite, plus:",
                   "Dual-sensor cross-validation",
-                  "Laser + photoacoustic technology",
+                  "Laser + photoacoustic fusion",
                   "Higher accuracy in all conditions",
                   "Wildfire smoke detection",
-                  "Indoor & outdoor rated",
-                  "1 year Bair1 Pro included",
                   "API access included",
+                  "1 year Pro software free",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-fresh-linen/80">
+                  <li key={item} className="flex items-start gap-2 text-sm text-fresh-linen/80">
                     <svg className="w-4 h-4 text-clean-air shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                     </svg>
@@ -301,22 +299,66 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <div className="flex items-end gap-3 mb-5">
-                <div className="text-3xl font-bold text-white">£179</div>
-                <div className="text-sm text-fresh-linen/40 mb-1">+ free UK shipping</div>
+              <div className="flex items-end gap-2 mb-4">
+                <div className="text-3xl font-bold text-white">£149</div>
+                <div className="text-xs text-fresh-linen/40 mb-1">free UK shipping</div>
               </div>
               <a
-                href="mailto:hello@heysalad.app?subject=Bair1%20Pro%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Pro%20dual-sensor."
-                className="bg-clean-air text-forest-night font-medium px-6 py-3 rounded-full text-center hover:bg-clean-air/90 transition-colors"
+                href="mailto:hello@heysalad.app?subject=Bair1%20Pro%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Pro%20(2%20sensors)."
+                className="bg-clean-air text-forest-night font-medium px-6 py-3 rounded-full text-center hover:bg-clean-air/90 transition-colors text-sm"
               >
                 Pre-order Pro
+              </a>
+            </div>
+
+            {/* Bair1 Max — 3 sensors */}
+            <div className="bg-white rounded-3xl p-7 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h3 className="text-lg font-bold text-forest-night">Bair1 Max</h3>
+                  <p className="text-xs text-forest-night/50 mt-0.5">3 sensors</p>
+                </div>
+                <Image src="/bear-logo.png" alt="Bair1 Max" width={48} height={48} className="object-contain" />
+              </div>
+              <div className="bg-bair-green/5 rounded-xl px-4 py-3 mb-5">
+                <div className="text-xs font-medium text-bair-green uppercase tracking-wider mb-1">Sensors</div>
+                <div className="text-sm font-bold text-forest-night">BMV080 + PMSA003I + SPS30</div>
+                <div className="text-xs text-forest-night/50">Triple-sensor, research-grade precision</div>
+              </div>
+              <ul className="space-y-2 mb-7 flex-1">
+                {[
+                  "Everything in Pro, plus:",
+                  "Sensirion SPS30 long-life laser",
+                  "Triple cross-validation",
+                  "Research-grade accuracy",
+                  "10-year sensor lifespan (SPS30)",
+                  "Priority support",
+                  "1 year Pro + API free",
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-2 text-sm text-forest-night/70">
+                    <svg className="w-4 h-4 text-bair-green shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+              <div className="flex items-end gap-2 mb-4">
+                <div className="text-3xl font-bold text-forest-night">£229</div>
+                <div className="text-xs text-forest-night/40 mb-1">free UK shipping</div>
+              </div>
+              <a
+                href="mailto:hello@heysalad.app?subject=Bair1%20Max%20Pre-order&body=I'd%20like%20to%20pre-order%20a%20Bair1%20Max%20(3%20sensors)."
+                className="bg-forest-night/10 text-forest-night font-medium px-6 py-3 rounded-full text-center hover:bg-forest-night/15 transition-colors text-sm"
+              >
+                Pre-order Max
               </a>
             </div>
           </div>
 
           {/* Shipping note */}
           <p className="text-center text-xs text-forest-night/40 mt-8">
-            Both sensors ship July 2026. All pre-orders include 1 year of Bair1 Pro software (worth £59.88). Cancel anytime after.
+            All models ship July 2026 and include 1 year of Bair1 Pro software (worth £59.88). Cancel anytime after.
           </p>
         </div>
       </section>
