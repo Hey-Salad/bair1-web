@@ -64,7 +64,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto flex items-center justify-between px-6 py-4">
           <div className="flex items-center gap-2.5">
             <Image src="/bear-logo.png" alt="Bair1" width={40} height={40} className="object-contain" />
-            <span className="text-2xl font-bold tracking-tight text-forest-night">
+            <span className="text-2xl font-bold tracking-tight text-forest-night" style={{ fontFamily: 'var(--font-display)' }}>
               Bair<span className="text-bair-green">1</span>
             </span>
           </div>
