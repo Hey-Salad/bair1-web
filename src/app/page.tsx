@@ -85,9 +85,11 @@ export default function LandingPage() {
                   Get a Sensor
                 </Link>
               </div>
-              <p className="text-sm text-muted/60">
-                Live at bair1.live &middot; London-first &middot; A HeySalad product
-              </p>
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-muted/40 font-medium">
+                {["Vercel", "Auth0", "OpenAI", "ElevenLabs"].map((name) => (
+                  <span key={name}>{name}</span>
+                ))}
+              </div>
             </div>
             <div className="flex items-center justify-center">
               <div className="relative">
@@ -221,15 +223,8 @@ export default function LandingPage() {
       {/* Social Proof */}
       <section className="py-16 sm:py-24">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          {/* Loved by developers */}
-          <div className="text-center mb-6">
-            <p className="text-xs sm:text-sm font-semibold tracking-widest uppercase text-primary mb-2 sm:mb-3">Social Proof</p>
-            <h2 className="text-ink mb-3 sm:mb-4">Loved by developers</h2>
-            <div className="flex items-center justify-center gap-6 sm:gap-8 mt-4 sm:mt-6 mb-10 sm:mb-16 opacity-50">
-              {["OpenAI", "Auth0", "Vercel"].map((company) => (
-                <span key={company} className="text-xs sm:text-sm font-bold tracking-wide text-muted">{company}</span>
-              ))}
-            </div>
+          <div className="text-center mb-10 sm:mb-16">
+            <h2 className="text-ink mb-3 sm:mb-4">Early feedback</h2>
           </div>
 
           {/* Tweet grid — horizontal scroll on mobile, masonry on larger */}
