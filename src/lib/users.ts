@@ -87,6 +87,36 @@ export async function getAllUsers(): Promise<User[]> {
   return (result.Items ?? []).map(parseUser);
 }
 
+export async function getUserByEmail(email: string): Promise<User | null> {
+  const result = await client.send(
+    new ScanCommand({
+      TableName: TABLE,
+      FilterExpression: "email = :email",
+      ExpressionAttributeValues: { ":email": { S: email } },
+      Limit: 1,
+    })
+  );
+  const item = result.Items?.[0];
+  return item ? parseUser(item) : null;
+}
+
+export async function migrateUserId(
+  oldUserId: string,
+  newUserId: string,
+  updates: Partial<Pick<User, "email" | "name">>
+): Promise<void> {
+  const existing = await getUser(oldUserId);
+  if (!existing) return;
+  // Delete old record and create new one with the Auth0 sub
+  await deleteUser(oldUserId);
+  await upsertUser({
+    ...existing,
+    userId: newUserId,
+    email: updates.email ?? existing.email,
+    name: updates.name ?? existing.name,
+  });
+}
+
 export async function deleteUser(userId: string): Promise<void> {
   await client.send(
     new DeleteItemCommand({

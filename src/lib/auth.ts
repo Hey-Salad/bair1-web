@@ -1,4 +1,4 @@
-import { getUser, upsertUser, type User, type Role } from "./users";
+import { getUser, getUserByEmail, migrateUserId, upsertUser, type User, type Role } from "./users";
 
 const AUTH0_DOMAIN = process.env.NEXT_PUBLIC_AUTH0_DOMAIN!;
 
@@ -37,6 +37,18 @@ export async function getOrCreateUser(
 
   const existing = await getUser(payload.sub);
   if (existing) return existing;
+
+  // Check if a pre-seeded record exists by email (e.g. bootstrap)
+  if (payload.email) {
+    const byEmail = await getUserByEmail(payload.email);
+    if (byEmail && byEmail.userId !== payload.sub) {
+      await migrateUserId(byEmail.userId, payload.sub, {
+        email: payload.email,
+        name: payload.name ?? byEmail.name,
+      });
+      return getUser(payload.sub);
+    }
+  }
 
   // Auto-provision new user with "user" role
   const newUser: User = {
