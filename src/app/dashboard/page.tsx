@@ -1,21 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import Logo from "@/components/Logo";
 import BearOrb from "@/components/BearOrb";
 import GuidanceStrip from "@/components/GuidanceStrip";
 import PmStats from "@/components/PmStats";
-import Navigation from "@/components/Navigation";
+import Navigation, { type Tab } from "@/components/Navigation";
 import MapView from "@/components/MapView";
 import HistoryView from "@/components/HistoryView";
 import AlertsView from "@/components/AlertsView";
+import AdminView from "@/components/AdminView";
 import DataSourceBadge from "@/components/DataSourceBadge";
 import { getAqiState } from "@/lib/aqi";
 
-type Tab = "home" | "map" | "history" | "alerts";
-
-const API_BASE = "/api/readings";
+interface DeviceOption {
+  deviceId: string;
+  name: string;
+}
 
 const DEMO_DATA = {
   aqi: 42,
@@ -46,39 +48,97 @@ export default function Dashboard() {
   const [data, setData] = useState(DEMO_DATA);
   const [isLive, setIsLive] = useState(false);
   const [lastUpdatedText, setLastUpdatedText] = useState("Just now");
+  const [devices, setDevices] = useState<DeviceOption[]>([]);
+  const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
 
   const aqiState = getAqiState(data.aqi);
 
+  // Fetch registered devices for device selector
   useEffect(() => {
-    async function fetchLive() {
+    async function fetchDevices() {
       try {
-        const res = await fetch(`${API_BASE}/latest`, { cache: "no-store" });
-        if (!res.ok) throw new Error("API unavailable");
+        const query = `{
+          registeredDevices { deviceId name status }
+          activeDeviceIds
+        }`;
+        const res = await fetch("/api/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+        if (!res.ok) return;
         const json = await res.json();
-        if (json.aqi !== undefined) {
-          setData({
-            aqi: json.aqi,
-            pm25: json.pm25 ?? json.pm2_5 ?? 0,
-            pm10: json.pm10 ?? 0,
-            location: json.location ?? "London",
-            lastUpdated: new Date(json.timestamp ?? Date.now()),
-            sensorId: json.deviceId ?? json.sensor_id ?? "unknown",
-          });
-          setIsLive(true);
-          setLastUpdatedText("Just now");
-          return;
+        const registered = json.data?.registeredDevices ?? [];
+        const activeIds: string[] = json.data?.activeDeviceIds ?? [];
+
+        // Merge: registered devices first, then any active-but-unregistered
+        const deviceMap = new Map<string, DeviceOption>();
+        for (const d of registered) {
+          deviceMap.set(d.deviceId, { deviceId: d.deviceId, name: d.name });
         }
-        throw new Error("No AQI in response");
+        for (const id of activeIds) {
+          if (!deviceMap.has(id)) {
+            deviceMap.set(id, { deviceId: id, name: `Sensor ${id.slice(-4)}` });
+          }
+        }
+
+        const list = Array.from(deviceMap.values());
+        setDevices(list);
+        if (list.length > 0 && !selectedDevice) {
+          setSelectedDevice(list[0].deviceId);
+        }
       } catch {
-        setIsLive(false);
+        // silently fail
       }
     }
+    fetchDevices();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Fetch live data from GraphQL for the selected device
+  const fetchLive = useCallback(async () => {
+    const deviceId = selectedDevice;
+    if (!deviceId) return;
+
+    try {
+      const query = `{
+        latestReading(deviceId: "${deviceId}") {
+          deviceId timestamp aqi gasVoltage rssi airState
+        }
+      }`;
+      const res = await fetch("/api/graphql", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query }),
+      });
+      if (!res.ok) throw new Error("API unavailable");
+      const json = await res.json();
+      const reading = json.data?.latestReading;
+      if (reading?.aqi !== undefined) {
+        setData({
+          aqi: reading.aqi,
+          pm25: reading.gasVoltage ?? 0,
+          pm10: 0,
+          location: "London",
+          lastUpdated: new Date(reading.timestamp),
+          sensorId: reading.deviceId,
+        });
+        setIsLive(true);
+        setLastUpdatedText("Just now");
+        return;
+      }
+      throw new Error("No reading");
+    } catch {
+      setIsLive(false);
+    }
+  }, [selectedDevice]);
+
+  useEffect(() => {
     fetchLive();
     const interval = setInterval(fetchLive, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchLive]);
 
+  // Demo data simulation when not live
   useEffect(() => {
     if (isLive) return;
     const interval = setInterval(() => {
@@ -94,6 +154,7 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [isLive]);
 
+  // Last updated text
   useEffect(() => {
     const tick = setInterval(() => {
       const secs = Math.floor((Date.now() - data.lastUpdated.getTime()) / 1000);
@@ -166,6 +227,21 @@ export default function Dashboard() {
       <div className="flex-1 max-w-lg mx-auto w-full pt-6">
         {tab === "home" && (
           <div className="tab-content-enter flex flex-col items-center gap-6 px-4 pb-28">
+            {/* Device selector */}
+            {devices.length > 1 && (
+              <select
+                value={selectedDevice ?? ""}
+                onChange={(e) => setSelectedDevice(e.target.value)}
+                className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-ink w-full max-w-xs"
+              >
+                {devices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.name} ({d.deviceId.slice(-4)})
+                  </option>
+                ))}
+              </select>
+            )}
+
             <DataSourceBadge
               isLive={isLive}
               sensorId={data.sensorId}
@@ -186,8 +262,9 @@ export default function Dashboard() {
         )}
 
         {tab === "map" && <MapView />}
-        {tab === "history" && <HistoryView />}
+        {tab === "history" && <HistoryView deviceId={selectedDevice ?? undefined} />}
         {tab === "alerts" && <AlertsView />}
+        {tab === "admin" && <AdminView />}
       </div>
 
       <Navigation active={tab} onChange={setTab} />

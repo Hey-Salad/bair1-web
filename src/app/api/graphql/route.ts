@@ -5,6 +5,7 @@ import {
   getAllDevices,
   getReadingsInRange,
 } from "@/lib/dynamo";
+import { getAllDevicesRegistry, type Device } from "@/lib/devices";
 
 const schema = createSchema({
   typeDefs: /* GraphQL */ `
@@ -22,8 +23,16 @@ const schema = createSchema({
       transport: String
     }
 
-    type Device {
+    type RegisteredDevice {
       deviceId: String!
+      name: String!
+      location: String!
+      lat: Float
+      lng: Float
+      ownerId: String!
+      orgId: String!
+      status: String!
+      createdAt: String!
       latestReading: Reading
     }
 
@@ -37,7 +46,8 @@ const schema = createSchema({
     type Query {
       readings(deviceId: String!, limit: Int): [Reading!]!
       latestReading(deviceId: String!): Reading
-      devices: [Device!]!
+      activeDeviceIds: [String!]!
+      registeredDevices: [RegisteredDevice!]!
       timeSeries(
         deviceId: String!
         from: String!
@@ -53,9 +63,12 @@ const schema = createSchema({
       latestReading: async (_parent, args) => {
         return getLatestReading(args.deviceId);
       },
-      devices: async () => {
-        const ids = await getAllDevices();
-        return ids.map((deviceId) => ({ deviceId }));
+      activeDeviceIds: async () => {
+        return getAllDevices();
+      },
+      registeredDevices: async () => {
+        const devices = await getAllDevicesRegistry();
+        return devices;
       },
       timeSeries: async (_parent, args) => {
         const readings = await getReadingsInRange(
@@ -71,8 +84,8 @@ const schema = createSchema({
         }));
       },
     },
-    Device: {
-      latestReading: async (parent) => {
+    RegisteredDevice: {
+      latestReading: async (parent: Device) => {
         return getLatestReading(parent.deviceId);
       },
     },
