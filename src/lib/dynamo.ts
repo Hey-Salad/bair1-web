@@ -26,6 +26,9 @@ export interface Reading {
   uptimeMs: number | null;
   sample: number | null;
   transport: string | null;
+  lat: number | null;
+  lng: number | null;
+  locationAccuracy: number | null;
 }
 
 function parseItem(item: Record<string, any>): Reading {
@@ -41,6 +44,9 @@ function parseItem(item: Record<string, any>): Reading {
     uptimeMs: item.uptimeMs?.N != null ? Number(item.uptimeMs.N) : null,
     sample: item.sample?.N != null ? Number(item.sample.N) : null,
     transport: item.transport?.S ?? null,
+    lat: item.lat?.N != null ? Number(item.lat.N) : null,
+    lng: item.lng?.N != null ? Number(item.lng.N) : null,
+    locationAccuracy: item.locationAccuracy?.N != null ? Number(item.locationAccuracy.N) : null,
   };
 }
 
