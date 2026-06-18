@@ -6,7 +6,7 @@
   /* OKLCH palette — Dark mode, committed green strategy */
   --color-bg: oklch(0.100 0.010 145);
   --color-surface: oklch(0.145 0.015 145);
-  --color-ink: oklch(0.950 0.005 145);
+  --color-ink: oklch(1 0 0);
   --color-muted: oklch(0.600 0.010 145);
   --color-primary: oklch(0.580 0.170 140);
   --color-primary-hover: oklch(0.540 0.170 140);
