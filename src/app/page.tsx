@@ -85,15 +85,6 @@ export default function LandingPage() {
                   Get a Sensor
                 </Link>
               </div>
-              <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer">
-                <Image
-                  src="/hackathon-badge.avif"
-                  alt="Built in London hackathon badge"
-                  width={48}
-                  height={48}
-                  className="rounded-lg hover:opacity-80 transition-opacity"
-                />
-              </a>
             </div>
             <div className="flex items-center justify-center">
               <div className="relative">
