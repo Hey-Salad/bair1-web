@@ -21,6 +21,15 @@ const schema = createSchema({
       uptimeMs: Float
       sample: Int
       transport: String
+      lat: Float
+      lng: Float
+      locationAccuracy: Float
+      pm1: Float
+      pm25: Float
+      pm4: Float
+      pm10: Float
+      sensorModel: String
+      board: String
     }
 
     type RegisteredDevice {
@@ -41,6 +50,16 @@ const schema = createSchema({
       aqi: Int!
       gasVoltage: Float
       rssi: Int
+      lat: Float
+      lng: Float
+    }
+
+    type LocationPoint {
+      timestamp: String!
+      lat: Float!
+      lng: Float!
+      aqi: Int!
+      accuracy: Float
     }
 
     type Query {
@@ -53,6 +72,11 @@ const schema = createSchema({
         from: String!
         to: String!
       ): [AqiTimeSeries!]!
+      locationTrail(
+        deviceId: String!
+        from: String!
+        to: String!
+      ): [LocationPoint!]!
     }
   `,
   resolvers: {
@@ -81,7 +105,25 @@ const schema = createSchema({
           aqi: r.aqi,
           gasVoltage: r.gasVoltage,
           rssi: r.rssi,
+          lat: r.lat,
+          lng: r.lng,
         }));
+      },
+      locationTrail: async (_parent, args) => {
+        const readings = await getReadingsInRange(
+          args.deviceId,
+          args.from,
+          args.to
+        );
+        return readings
+          .filter((r) => r.lat != null && r.lng != null)
+          .map((r) => ({
+            timestamp: r.timestamp,
+            lat: r.lat!,
+            lng: r.lng!,
+            aqi: r.aqi,
+            accuracy: r.locationAccuracy,
+          }));
       },
     },
     RegisteredDevice: {

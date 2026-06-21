@@ -1,18 +1,4 @@
-import {
-  DynamoDBClient,
-  QueryCommand,
-  ScanCommand,
-} from "@aws-sdk/client-dynamodb";
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "eu-west-2",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
-const TABLE = "bair1-readings";
+import { getDb, ensureTable } from "./db";
 
 export interface Reading {
   deviceId: string;
@@ -29,24 +15,37 @@ export interface Reading {
   lat: number | null;
   lng: number | null;
   locationAccuracy: number | null;
+  pm1: number | null;
+  pm25: number | null;
+  pm4: number | null;
+  pm10: number | null;
+  sensorModel: string | null;
+  board: string | null;
 }
 
-function parseItem(item: Record<string, any>): Reading {
+function parseRow(row: Record<string, unknown>): Reading {
+  const raw = row.raw_payload as Record<string, unknown> | null;
   return {
-    deviceId: item.deviceId?.S ?? "unknown",
-    timestamp: item.timestamp?.S ?? "",
-    aqi: Number(item.aqi?.N ?? 0),
-    gasRaw: item.gasRaw?.N != null ? Number(item.gasRaw.N) : null,
-    gasVoltage: item.gasVoltage?.N != null ? Number(item.gasVoltage.N) : null,
-    airState: item.airState?.S ?? null,
-    rssi: item.rssi?.N != null ? Number(item.rssi.N) : null,
-    firmwareVersion: item.firmwareVersion?.S ?? null,
-    uptimeMs: item.uptimeMs?.N != null ? Number(item.uptimeMs.N) : null,
-    sample: item.sample?.N != null ? Number(item.sample.N) : null,
-    transport: item.transport?.S ?? null,
-    lat: item.lat?.N != null ? Number(item.lat.N) : null,
-    lng: item.lng?.N != null ? Number(item.lng.N) : null,
-    locationAccuracy: item.locationAccuracy?.N != null ? Number(item.locationAccuracy.N) : null,
+    deviceId: String(row.device_id ?? "unknown"),
+    timestamp: row.created_at ? new Date(row.created_at as string).toISOString() : "",
+    aqi: Number(row.aqi ?? 0),
+    gasRaw: row.gas_raw != null ? Number(row.gas_raw) : null,
+    gasVoltage: row.gas_voltage != null ? Number(row.gas_voltage) : null,
+    airState: row.air_state as string | null,
+    rssi: row.rssi != null ? Number(row.rssi) : null,
+    firmwareVersion: row.firmware_version as string | null,
+    uptimeMs: row.uptime_ms != null ? Number(row.uptime_ms) : null,
+    sample: row.sample != null ? Number(row.sample) : null,
+    transport: row.transport as string | null,
+    lat: raw?.lat != null ? Number(raw.lat) : null,
+    lng: raw?.lng != null ? Number(raw.lng) : null,
+    locationAccuracy: null,
+    pm1: raw?.pm1 != null ? Number(raw.pm1) : null,
+    pm25: raw?.pm25 != null ? Number(raw.pm25) : null,
+    pm4: raw?.pm4 != null ? Number(raw.pm4) : null,
+    pm10: raw?.pm10 != null ? Number(raw.pm10) : null,
+    sensorModel: raw?.sensorModel ? String(raw.sensorModel) : null,
+    board: raw?.board ? String(raw.board) : null,
   };
 }
 
@@ -54,16 +53,15 @@ export async function getReadings(
   deviceId: string,
   limit = 100
 ): Promise<Reading[]> {
-  const result = await client.send(
-    new QueryCommand({
-      TableName: TABLE,
-      KeyConditionExpression: "deviceId = :did",
-      ExpressionAttributeValues: { ":did": { S: deviceId } },
-      ScanIndexForward: false,
-      Limit: limit,
-    })
-  );
-  return (result.Items ?? []).map(parseItem);
+  const sql = getDb();
+  await ensureTable();
+  const rows = await sql`
+    SELECT * FROM readings
+    WHERE device_id = ${deviceId}
+    ORDER BY created_at DESC
+    LIMIT ${limit}
+  `;
+  return rows.map(parseRow);
 }
 
 export async function getLatestReading(
@@ -74,17 +72,15 @@ export async function getLatestReading(
 }
 
 export async function getAllDevices(): Promise<string[]> {
-  const result = await client.send(
-    new ScanCommand({
-      TableName: TABLE,
-      ProjectionExpression: "deviceId",
-    })
-  );
-  const ids = new Set<string>();
-  for (const item of result.Items ?? []) {
-    if (item.deviceId?.S) ids.add(item.deviceId.S);
-  }
-  return [...ids];
+  const sql = getDb();
+  await ensureTable();
+  const rows = await sql`
+    SELECT device_id, MAX(created_at) as last_seen
+    FROM readings
+    GROUP BY device_id
+    ORDER BY last_seen DESC
+  `;
+  return rows.map((r) => String(r.device_id));
 }
 
 export async function getReadingsInRange(
@@ -92,19 +88,14 @@ export async function getReadingsInRange(
   from: string,
   to: string
 ): Promise<Reading[]> {
-  const result = await client.send(
-    new QueryCommand({
-      TableName: TABLE,
-      KeyConditionExpression:
-        "deviceId = :did AND #ts BETWEEN :from AND :to",
-      ExpressionAttributeNames: { "#ts": "timestamp" },
-      ExpressionAttributeValues: {
-        ":did": { S: deviceId },
-        ":from": { S: from },
-        ":to": { S: to },
-      },
-      ScanIndexForward: true,
-    })
-  );
-  return (result.Items ?? []).map(parseItem);
+  const sql = getDb();
+  await ensureTable();
+  const rows = await sql`
+    SELECT * FROM readings
+    WHERE device_id = ${deviceId}
+      AND created_at >= ${from}::timestamptz
+      AND created_at <= ${to}::timestamptz
+    ORDER BY created_at ASC
+  `;
+  return rows.map(parseRow);
 }

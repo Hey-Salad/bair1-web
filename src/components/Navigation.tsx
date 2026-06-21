@@ -1,6 +1,6 @@
 "use client";
 
-export type Tab = "home" | "map" | "history" | "alerts" | "admin";
+export type Tab = "home" | "map" | "analytics" | "ai" | "admin";
 
 interface NavigationProps {
   active: Tab;
@@ -28,8 +28,8 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    id: "history",
-    label: "History",
+    id: "analytics",
+    label: "Analytics",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -37,11 +37,11 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    id: "alerts",
-    label: "Alerts",
+    id: "ai",
+    label: "AI",
     icon: (
       <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-5-5.917V4a1 1 0 10-2 0v1.083A6 6 0 006 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0a3 3 0 11-6 0m6 0H9" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
       </svg>
     ),
   },
@@ -60,7 +60,7 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
 export default function Navigation({ active, onChange }: NavigationProps) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-surface/95 backdrop-blur-lg border-t border-border z-50">
-      <div className="max-w-lg mx-auto flex items-center justify-around py-2 px-4 safe-bottom">
+      <div className="max-w-5xl mx-auto flex items-center justify-around py-2 px-4 safe-bottom">
         {tabs.map((tab) => (
           <button
             key={tab.id}
