@@ -50,6 +50,12 @@ export default function LandingPage() {
               Dashboard
             </Link>
             <Link
+              href="/firmware"
+              className="text-sm font-medium text-muted hover:text-ink transition-colors hidden sm:block"
+            >
+              Firmware
+            </Link>
+            <Link
               href="#sensor"
               className="bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-colors"
             >
@@ -312,8 +318,8 @@ export default function LandingPage() {
             {/* Lite */}
             <div className="rounded-2xl border border-border p-7 flex flex-col">
               <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Lite</h3>
-                <p className="text-sm text-muted mt-0.5">1 sensor</p>
+                <h3 className="text-ink font-bold">Bair1 Dev Kit — Lite</h3>
+                <p className="text-sm text-muted mt-0.5">1 sensor · Ships now</p>
               </div>
               <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
                 <div className="text-sm font-bold text-ink">Bosch BMV080</div>
@@ -344,7 +350,7 @@ export default function LandingPage() {
                 tier="lite"
                 className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
               >
-                Pre-order Lite
+                Order Lite Kit
               </CheckoutButton>
             </div>
 
@@ -354,8 +360,8 @@ export default function LandingPage() {
                 Recommended
               </div>
               <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Pro</h3>
-                <p className="text-sm text-muted mt-0.5">2 sensors</p>
+                <h3 className="text-ink font-bold">Bair1 Dev Kit — Pro</h3>
+                <p className="text-sm text-muted mt-0.5">2 sensors · Ships now</p>
               </div>
               <div className="bg-bg rounded-lg px-4 py-3 mb-6 border border-border">
                 <div className="text-sm font-bold text-ink">BMV080 + PMSA003I</div>
@@ -387,15 +393,15 @@ export default function LandingPage() {
                 tier="pro"
                 className="bg-primary text-white font-semibold px-6 py-3 rounded-lg text-center hover:bg-primary-hover transition-colors text-sm cursor-pointer"
               >
-                Pre-order Pro
+                Order Pro Kit
               </CheckoutButton>
             </div>
 
             {/* Max */}
             <div className="rounded-2xl border border-border p-7 flex flex-col">
               <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Max</h3>
-                <p className="text-sm text-muted mt-0.5">3 sensors</p>
+                <h3 className="text-ink font-bold">Bair1 Dev Kit — Max</h3>
+                <p className="text-sm text-muted mt-0.5">3 sensors · Ships now</p>
               </div>
               <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
                 <div className="text-sm font-bold text-ink">BMV080 + PMSA003I + SPS30</div>
@@ -427,13 +433,13 @@ export default function LandingPage() {
                 tier="max"
                 className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
               >
-                Pre-order Max
+                Order Max Kit
               </CheckoutButton>
             </div>
           </div>
 
           <p className="text-center text-sm text-muted/60 mt-10">
-            All models ship July 2026. Pre-orders include 1 year of Bair1 Pro software (worth £59.88).
+            All dev kits ship within 5 working days. Includes 1 year of Bair1 Pro software (worth £59.88). Have a promo code? Enter it at checkout.
           </p>
         </div>
       </section>
@@ -472,6 +478,7 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-6 text-sm text-muted">
               <Link href="https://app.bair1.live" className="hover:text-ink transition-colors">Dashboard</Link>
+              <Link href="/firmware" className="hover:text-ink transition-colors">Firmware</Link>
               <a href="mailto:hello@heysalad.app" className="hover:text-ink transition-colors">Contact</a>
               <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="hover:text-ink transition-colors">Built in London</a>
             </div>

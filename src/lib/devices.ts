@@ -1,21 +1,4 @@
-import {
-  DynamoDBClient,
-  GetItemCommand,
-  PutItemCommand,
-  ScanCommand,
-  UpdateItemCommand,
-  DeleteItemCommand,
-} from "@aws-sdk/client-dynamodb";
-
-const client = new DynamoDBClient({
-  region: process.env.AWS_REGION || "eu-west-2",
-  credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-  },
-});
-
-const TABLE = "bair1-devices";
+import { getDb } from "./db";
 
 export type DeviceStatus = "active" | "inactive" | "provisioning";
 
@@ -31,122 +14,104 @@ export interface Device {
   createdAt: string;
 }
 
-function parseDevice(item: Record<string, any>): Device {
+async function ensureDevicesTable() {
+  const sql = getDb();
+  await sql`
+    CREATE TABLE IF NOT EXISTS devices (
+      device_id TEXT PRIMARY KEY,
+      name TEXT NOT NULL DEFAULT '',
+      location TEXT NOT NULL DEFAULT '',
+      lat REAL,
+      lng REAL,
+      owner_id TEXT NOT NULL DEFAULT '',
+      org_id TEXT NOT NULL DEFAULT 'default',
+      status TEXT NOT NULL DEFAULT 'active',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `;
+}
+
+function parseRow(row: Record<string, unknown>): Device {
   return {
-    deviceId: item.deviceId?.S ?? "",
-    name: item.name?.S ?? "",
-    location: item.location?.S ?? "",
-    lat: item.lat?.N != null ? Number(item.lat.N) : null,
-    lng: item.lng?.N != null ? Number(item.lng.N) : null,
-    ownerId: item.ownerId?.S ?? "",
-    orgId: item.orgId?.S ?? "default",
-    status: (item.status?.S as DeviceStatus) ?? "inactive",
-    createdAt: item.createdAt?.S ?? "",
+    deviceId: String(row.device_id ?? ""),
+    name: String(row.name ?? ""),
+    location: String(row.location ?? ""),
+    lat: row.lat != null ? Number(row.lat) : null,
+    lng: row.lng != null ? Number(row.lng) : null,
+    ownerId: String(row.owner_id ?? ""),
+    orgId: String(row.org_id ?? "default"),
+    status: (row.status as DeviceStatus) ?? "inactive",
+    createdAt: row.created_at ? new Date(row.created_at as string).toISOString() : "",
   };
 }
 
 export async function getDevice(deviceId: string): Promise<Device | null> {
-  const result = await client.send(
-    new GetItemCommand({
-      TableName: TABLE,
-      Key: { deviceId: { S: deviceId } },
-    })
-  );
-  return result.Item ? parseDevice(result.Item) : null;
+  const sql = getDb();
+  await ensureDevicesTable();
+  const rows = await sql`SELECT * FROM devices WHERE device_id = ${deviceId}`;
+  return rows[0] ? parseRow(rows[0]) : null;
 }
 
 export async function createDevice(device: Device): Promise<void> {
-  await client.send(
-    new PutItemCommand({
-      TableName: TABLE,
-      Item: {
-        deviceId: { S: device.deviceId },
-        name: { S: device.name },
-        location: { S: device.location },
-        ...(device.lat != null ? { lat: { N: String(device.lat) } } : {}),
-        ...(device.lng != null ? { lng: { N: String(device.lng) } } : {}),
-        ownerId: { S: device.ownerId },
-        orgId: { S: device.orgId },
-        status: { S: device.status },
-        createdAt: { S: device.createdAt },
-      },
-    })
-  );
+  const sql = getDb();
+  await ensureDevicesTable();
+  await sql`
+    INSERT INTO devices (device_id, name, location, lat, lng, owner_id, org_id, status, created_at)
+    VALUES (${device.deviceId}, ${device.name}, ${device.location}, ${device.lat}, ${device.lng}, ${device.ownerId}, ${device.orgId}, ${device.status}, ${device.createdAt || new Date().toISOString()})
+    ON CONFLICT (device_id) DO UPDATE SET
+      name = EXCLUDED.name,
+      location = EXCLUDED.location,
+      lat = EXCLUDED.lat,
+      lng = EXCLUDED.lng,
+      owner_id = EXCLUDED.owner_id,
+      org_id = EXCLUDED.org_id,
+      status = EXCLUDED.status
+  `;
 }
 
 export async function updateDevice(
   deviceId: string,
   updates: Partial<Pick<Device, "name" | "location" | "lat" | "lng" | "status" | "ownerId">>
 ): Promise<void> {
-  const exprs: string[] = [];
-  const names: Record<string, string> = {};
-  const values: Record<string, any> = {};
-
-  if (updates.name !== undefined) {
-    exprs.push("#n = :name");
-    names["#n"] = "name";
-    values[":name"] = { S: updates.name };
-  }
-  if (updates.location !== undefined) {
-    exprs.push("#loc = :loc");
-    names["#loc"] = "location";
-    values[":loc"] = { S: updates.location };
-  }
-  if (updates.lat !== undefined) {
-    exprs.push("lat = :lat");
-    values[":lat"] = updates.lat != null ? { N: String(updates.lat) } : { NULL: true };
-  }
-  if (updates.lng !== undefined) {
-    exprs.push("lng = :lng");
-    values[":lng"] = updates.lng != null ? { N: String(updates.lng) } : { NULL: true };
-  }
-  if (updates.status !== undefined) {
-    exprs.push("#st = :status");
-    names["#st"] = "status";
-    values[":status"] = { S: updates.status };
-  }
-  if (updates.ownerId !== undefined) {
-    exprs.push("ownerId = :ownerId");
-    values[":ownerId"] = { S: updates.ownerId };
-  }
-
-  if (exprs.length === 0) return;
-
-  await client.send(
-    new UpdateItemCommand({
-      TableName: TABLE,
-      Key: { deviceId: { S: deviceId } },
-      UpdateExpression: `SET ${exprs.join(", ")}`,
-      ...(Object.keys(names).length > 0
-        ? { ExpressionAttributeNames: names }
-        : {}),
-      ExpressionAttributeValues: values,
-    })
-  );
+  const sql = getDb();
+  await ensureDevicesTable();
+  const current = await getDevice(deviceId);
+  if (!current) return;
+  await sql`
+    UPDATE devices SET
+      name = ${updates.name ?? current.name},
+      location = ${updates.location ?? current.location},
+      lat = ${updates.lat !== undefined ? updates.lat : current.lat},
+      lng = ${updates.lng !== undefined ? updates.lng : current.lng},
+      status = ${updates.status ?? current.status},
+      owner_id = ${updates.ownerId ?? current.ownerId}
+    WHERE device_id = ${deviceId}
+  `;
 }
 
 export async function deleteDevice(deviceId: string): Promise<void> {
-  await client.send(
-    new DeleteItemCommand({
-      TableName: TABLE,
-      Key: { deviceId: { S: deviceId } },
-    })
-  );
+  const sql = getDb();
+  await ensureDevicesTable();
+  await sql`DELETE FROM devices WHERE device_id = ${deviceId}`;
 }
 
 export async function getAllDevicesRegistry(): Promise<Device[]> {
-  const result = await client.send(
-    new ScanCommand({ TableName: TABLE })
-  );
-  return (result.Items ?? []).map(parseDevice);
+  const sql = getDb();
+  await ensureDevicesTable();
+  const rows = await sql`SELECT * FROM devices ORDER BY created_at DESC`;
+  return rows.map(parseRow);
 }
 
 export async function getDevicesForUser(userId: string): Promise<Device[]> {
-  const all = await getAllDevicesRegistry();
-  return all.filter((d) => d.ownerId === userId);
+  const sql = getDb();
+  await ensureDevicesTable();
+  const rows = await sql`SELECT * FROM devices WHERE owner_id = ${userId}`;
+  return rows.map(parseRow);
 }
 
 export async function getDevicesForOrg(orgId: string): Promise<Device[]> {
-  const all = await getAllDevicesRegistry();
-  return all.filter((d) => d.orgId === orgId);
+  const sql = getDb();
+  await ensureDevicesTable();
+  const rows = await sql`SELECT * FROM devices WHERE org_id = ${orgId}`;
+  return rows.map(parseRow);
 }
