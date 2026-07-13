@@ -86,6 +86,24 @@ function EndpointRow({
   );
 }
 
+function ToolCard({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border border-[#e2e6de] rounded-lg p-5 bg-[#FAFBF8]">
+      <h3 className="font-semibold text-[#1A2410]">{title}</h3>
+      <p className="mt-1 mb-4 text-sm text-[#1A2410]/60">{description}</p>
+      {children}
+    </div>
+  );
+}
+
 export default function DevelopersPage() {
   return (
     <div className="min-h-screen bg-[#F2F4F0]" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
@@ -135,6 +153,8 @@ export default function DevelopersPage() {
               ["GraphQL", "#graphql"],
               ["MCP Server", "#mcp"],
               ["CLI", "#cli"],
+              ["Agents", "#agents"],
+              ["Firmware", "#firmware"],
               ["SDKs", "#sdks"],
             ].map(([label, href]) => (
               <a
@@ -154,15 +174,25 @@ export default function DevelopersPage() {
         {/* Quick Start */}
         <SectionCard title="Quick Start" id="quickstart">
           <p className="text-[#1A2410]/70 mb-6">
-            Get up and running in seconds. No API key required for read
-            endpoints.
+            Get up and running in seconds. The latest reading endpoint is
+            public. Device registry, export, and write endpoints require a
+            Bair1 API key.
           </p>
           <div className="space-y-4">
-            <CodeBlock label="List all devices">
-              {`curl https://bair1.live/api/v1/devices`}
-            </CodeBlock>
             <CodeBlock label="Get the latest reading">
-              {`curl https://bair1.live/api/readings/latest`}
+              {`curl https://www.bair1.live/api/readings/latest`}
+            </CodeBlock>
+            <CodeBlock label="List registered devices">
+              {`curl https://www.bair1.live/api/v1/devices \\
+  -H "Authorization: Bearer $BAIR1_API_KEY"`}
+            </CodeBlock>
+            <CodeBlock label="Use the JavaScript SDK">
+              {`npm install @heysalad/bair1
+
+import { Bair1Client } from "@heysalad/bair1";
+
+const bair1 = new Bair1Client({ apiKey: process.env.BAIR1_API_KEY });
+const latest = await bair1.latest();`}
             </CodeBlock>
           </div>
         </SectionCard>
@@ -170,10 +200,14 @@ export default function DevelopersPage() {
         {/* REST API */}
         <SectionCard title="REST API" id="rest-api">
           <p className="text-[#1A2410]/70 mb-6">
-            All endpoints return JSON. Read endpoints are public. Write
-            endpoints require an API key passed via the{" "}
+            All endpoints return JSON. Use an API key for device registry,
+            exports, and writes. Pass it via the{" "}
             <code className="bg-[#1A2410]/5 px-1.5 py-0.5 rounded text-sm font-mono">
               Authorization
+            </code>{" "}
+            header or the{" "}
+            <code className="bg-[#1A2410]/5 px-1.5 py-0.5 rounded text-sm font-mono">
+              x-api-key
             </code>{" "}
             header.
           </p>
@@ -214,7 +248,8 @@ export default function DevelopersPage() {
 
           <div className="mt-6">
             <CodeBlock label="Example: Get readings with filters">
-              {`curl "https://bair1.live/api/v1/devices/XIAO-SPS30-5EAA7A/readings?limit=10&from=2026-01-01"`}
+              {`curl "https://www.bair1.live/api/v1/devices/XIAO-SPS30-5EAA7A/readings?limit=10&from=2026-01-01" \\
+  -H "Authorization: Bearer $BAIR1_API_KEY"`}
             </CodeBlock>
           </div>
         </SectionCard>
@@ -229,18 +264,16 @@ export default function DevelopersPage() {
             . Supports introspection.
           </p>
           <CodeBlock label="Example query">
-            {`curl -X POST https://bair1.live/api/graphql \\
+            {`curl -X POST https://www.bair1.live/api/graphql \\
   -H "Content-Type: application/json" \\
   -d '{
     "query": "{
-      devices {
-        id
+      registeredDevices {
+        deviceId
         name
-        lastReading {
+        latestReading {
           pm25
           pm10
-          temperature
-          humidity
           timestamp
         }
       }
@@ -261,7 +294,10 @@ export default function DevelopersPage() {
   "mcpServers": {
     "bair1": {
       "command": "npx",
-      "args": ["@heysalad/bair1-mcp"]
+      "args": ["-y", "@heysalad/bair1-mcp"],
+      "env": {
+        "BAIR1_API_KEY": "your-api-key"
+      }
     }
   }
 }`}
@@ -280,10 +316,13 @@ export default function DevelopersPage() {
           </p>
           <div className="space-y-4">
             <CodeBlock label="Install">
-              {`npm install -g @heysalad/bair1-cli`}
+              {`npm install -g @heysalad/bair1`}
             </CodeBlock>
             <CodeBlock label="Usage">
-              {`# Get the latest reading
+              {`# Save your API key for authenticated endpoints
+bair1 config set-key "$BAIR1_API_KEY"
+
+# Get the latest reading
 bair1 latest
 
 # List all devices
@@ -291,6 +330,95 @@ bair1 devices
 
 # Export data as CSV
 bair1 export --device XIAO-SPS30-5EAA7A --format csv`}
+            </CodeBlock>
+          </div>
+        </SectionCard>
+
+        {/* Agent Guides */}
+        <SectionCard title="Agent Guides" id="agents">
+          <p className="text-[#1A2410]/70 mb-6">
+            Agent tools can query Bair1 through MCP, the JavaScript SDK, or the
+            REST API. MCP is the best default for coding agents because it
+            exposes Bair1 as named tools instead of requiring custom glue code.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <ToolCard
+              title="Codex"
+              description="Use the MCP server when the environment supports MCP tools, or import the SDK in local scripts."
+            >
+              <CodeBlock>
+                {`# MCP command
+npx -y @heysalad/bair1-mcp
+
+# SDK command
+npm install @heysalad/bair1`}
+              </CodeBlock>
+            </ToolCard>
+            <ToolCard
+              title="Claude Code"
+              description="Register the MCP server once, then ask Claude to inspect readings, devices, and exports."
+            >
+              <CodeBlock>
+                {`claude mcp add bair1 \\
+  -e BAIR1_API_KEY=$BAIR1_API_KEY \\
+  npx -y @heysalad/bair1-mcp`}
+              </CodeBlock>
+            </ToolCard>
+            <ToolCard
+              title="Cursor"
+              description="Add the Bair1 MCP server to your MCP configuration and keep the API key in the environment."
+            >
+              <CodeBlock>
+                {`{
+  "mcpServers": {
+    "bair1": {
+      "command": "npx",
+      "args": ["-y", "@heysalad/bair1-mcp"]
+    }
+  }
+}`}
+              </CodeBlock>
+            </ToolCard>
+            <ToolCard
+              title="Antigravity"
+              description="Use the same stdio MCP command if your workspace supports custom MCP servers."
+            >
+              <CodeBlock>
+                {`BAIR1_API_KEY=your-api-key \\
+  npx -y @heysalad/bair1-mcp`}
+              </CodeBlock>
+            </ToolCard>
+          </div>
+        </SectionCard>
+
+        {/* Firmware */}
+        <SectionCard title="Firmware" id="firmware">
+          <p className="text-[#1A2410]/70 mb-6">
+            Bair1 firmware can post sensor readings directly to the API or to a
+            relay when the network path needs TLS or cellular handling.
+          </p>
+          <div className="space-y-4">
+            <CodeBlock label="Reading upload">
+              {`POST https://www.bair1.live/api/readings
+Authorization: Bearer $BAIR1_API_KEY
+Content-Type: application/json
+
+{
+  "deviceId": "YOUR_DEVICE_ID",
+  "deviceName": "Bair1 Sensor",
+  "family": "bair1",
+  "pm25": 8.4,
+  "pm10": 13.2,
+  "aqi": 34,
+  "transport": "wifi"
+}`}
+            </CodeBlock>
+            <CodeBlock label="Cellular relay target">
+              {`# For SIM800L or cellular paths, send to the relay
+POST https://sensor.heysalad.app/api/readings
+
+# The relay forwards to:
+https://www.bair1.live/api/readings`}
             </CodeBlock>
           </div>
         </SectionCard>
@@ -324,8 +452,8 @@ bair1 export --device XIAO-SPS30-5EAA7A --format csv`}
               <p className="text-sm text-[#1A2410]/50 mb-3">
                 npm install @heysalad/bair1
               </p>
-              <span className="inline-block px-3 py-1 rounded-full bg-[#8C6234]/10 text-[#8C6234] text-xs font-semibold">
-                Coming Soon
+              <span className="inline-block px-3 py-1 rounded-full bg-[#4A8A1A]/10 text-[#4A8A1A] text-xs font-semibold">
+                Ready to publish
               </span>
             </div>
           </div>
