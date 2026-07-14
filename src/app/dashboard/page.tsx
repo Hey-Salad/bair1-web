@@ -232,16 +232,22 @@ export default function Dashboard() {
     );
   }
 
+  const activeDeviceName = devices.find((d) => d.deviceId === selectedDevice)?.name ?? "No device selected";
+
   return (
-    <main className="flex-1 flex flex-col">
-      <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-lg border-b border-border">
-        <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
-          <Link href="/"><Logo /></Link>
+    <main className="flex-1 flex flex-col lg:min-h-screen lg:bg-bg lg:pl-64">
+      <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-lg">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 lg:max-w-none lg:px-8 lg:py-4">
+          <Link href="/" className="lg:hidden"><Logo /></Link>
+          <div className="hidden lg:block">
+            <div className="text-sm font-semibold text-ink">{activeDeviceName}</div>
+            <div className="text-xs text-muted/60">{lastUpdatedText}</div>
+          </div>
           <div className="flex items-center gap-3">
             <select
               value={selectedDevice ?? ""}
               onChange={(e) => setSelectedDevice(e.target.value)}
-              className="bg-surface border border-border rounded-lg px-2 py-1 text-xs text-ink max-w-[200px]"
+              className="max-w-[200px] rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink lg:max-w-[280px] lg:px-3 lg:py-2"
             >
               {devices.map((d) => (
                 <option key={d.deviceId} value={d.deviceId}>
@@ -251,7 +257,7 @@ export default function Dashboard() {
             </select>
             <div className="text-right">
               <div className="text-xs font-medium text-ink/70">{user?.name ?? "Bair1"}</div>
-              <div className="text-[10px] text-muted/60">{lastUpdatedText}</div>
+              <div className="text-[10px] text-muted/60 lg:hidden">{lastUpdatedText}</div>
             </div>
             <button
               onClick={logout}
@@ -263,13 +269,13 @@ export default function Dashboard() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-5xl mx-auto w-full pt-4">
+      <div className="mx-auto w-full max-w-5xl flex-1 pt-4 lg:max-w-none lg:px-8 lg:pt-6">
         {tab === "home" && (
-          <div className="tab-content-enter px-4 pb-28">
+          <div className="tab-content-enter px-4 pb-28 lg:px-0 lg:pb-8">
             {/* Desktop: two-column layout */}
-            <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(360px,0.9fr)_minmax(480px,1.1fr)] xl:grid-cols-[420px_1fr]">
               {/* Left column: Gauge + PM stats */}
-              <div className="flex flex-col items-center gap-5 lg:w-1/2">
+              <div className="flex flex-col items-center gap-5">
                 <DataSourceBadge
                   isLive={isLive}
                   sensorId={sensorId}
@@ -342,7 +348,7 @@ export default function Dashboard() {
               </div>
 
               {/* Right column: Devices + Environmental */}
-              <div className="flex flex-col gap-5 lg:w-1/2">
+              <div className="flex flex-col gap-5">
                 {/* Devices list */}
                 <div className="w-full">
                   <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">Devices</div>
