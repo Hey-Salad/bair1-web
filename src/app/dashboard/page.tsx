@@ -236,11 +236,11 @@ export default function Dashboard() {
 
   return (
     <main className="flex-1 flex flex-col lg:min-h-screen lg:bg-bg lg:pl-64">
-      <header className="sticky top-0 z-40 border-b border-border bg-bg/90 backdrop-blur-lg">
+      <header className="sticky top-0 z-40 border-b border-border bg-bg/85 backdrop-blur-lg">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 lg:max-w-none lg:px-8 lg:py-4">
           <Link href="/" className="lg:hidden"><Logo /></Link>
           <div className="hidden lg:block">
-            <div className="text-sm font-semibold text-ink">{activeDeviceName}</div>
+            <div className="text-sm font-medium text-ink/90">{activeDeviceName}</div>
             <div className="text-xs text-muted/60">{lastUpdatedText}</div>
           </div>
           <div className="flex items-center gap-3">

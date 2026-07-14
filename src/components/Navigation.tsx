@@ -74,12 +74,12 @@ const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
 export default function Navigation({ active, onChange }: NavigationProps) {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-border bg-surface/95 px-4 py-5 backdrop-blur-lg lg:flex lg:flex-col">
-        <Link href="/" className="mb-8 block px-2">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 border-r border-border bg-surface/80 px-4 py-5 backdrop-blur-lg lg:flex lg:flex-col">
+        <Link href="/" className="mb-8 block px-2 opacity-95">
           <Logo />
         </Link>
 
-        <div className="mb-3 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted/60">
+        <div className="mb-3 px-2 text-[10px] font-medium uppercase tracking-wider text-muted/50">
           Workspace
         </div>
         <nav className="flex flex-col gap-1" aria-label="Dashboard">
@@ -94,7 +94,7 @@ export default function Navigation({ active, onChange }: NavigationProps) {
           ))}
         </nav>
 
-        <div className="mt-8 mb-3 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted/60">
+        <div className="mt-8 mb-3 px-2 text-[10px] font-medium uppercase tracking-wider text-muted/50">
           Platform
         </div>
         <nav className="flex flex-col gap-1" aria-label="Platform">
@@ -145,7 +145,7 @@ function NavButton({
         className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-medium transition-colors ${
           active
             ? "bg-primary/10 text-primary"
-            : "text-muted/70 hover:bg-bg hover:text-ink"
+            : "text-muted/65 hover:bg-bg/80 hover:text-ink/85"
         }`}
         aria-label={tab.label}
         aria-current={active ? "page" : undefined}
