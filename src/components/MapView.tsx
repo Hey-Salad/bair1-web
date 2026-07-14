@@ -334,17 +334,27 @@ export default function MapView() {
 
       {/* Device selector for trail */}
       {sensors.length > 1 && (
-        <select
-          value={selectedDevice ?? ""}
-          onChange={(e) => setSelectedDevice(e.target.value)}
-          className="bg-surface border border-border rounded-lg px-3 py-1.5 text-xs text-ink w-full mb-3"
-        >
-          {sensors.map((s) => (
-            <option key={s.deviceId} value={s.deviceId}>
-              {s.name} — AQI {s.aqi}
-            </option>
-          ))}
-        </select>
+        <div className="relative mb-3">
+          <select
+            value={selectedDevice ?? ""}
+            onChange={(e) => setSelectedDevice(e.target.value)}
+            className="h-9 w-full appearance-none rounded-lg border border-border bg-surface/70 px-3 pr-9 text-sm font-medium text-ink/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/50 focus:bg-surface"
+          >
+            {sensors.map((s) => (
+              <option key={s.deviceId} value={s.deviceId}>
+                {s.name} - AQI {s.aqi}
+              </option>
+            ))}
+          </select>
+          <svg
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted/60"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+          >
+            <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+          </svg>
+        </div>
       )}
 
       {/* Map */}

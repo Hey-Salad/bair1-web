@@ -244,17 +244,27 @@ export default function Dashboard() {
             <div className="text-xs text-muted/60">{lastUpdatedText}</div>
           </div>
           <div className="flex items-center gap-3">
-            <select
-              value={selectedDevice ?? ""}
-              onChange={(e) => setSelectedDevice(e.target.value)}
-              className="max-w-[200px] rounded-lg border border-border bg-surface px-2 py-1 text-xs text-ink lg:max-w-[280px] lg:px-3 lg:py-2"
-            >
-              {devices.map((d) => (
-                <option key={d.deviceId} value={d.deviceId}>
-                  {d.name} ({d.deviceId.slice(-4)})
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={selectedDevice ?? ""}
+                onChange={(e) => setSelectedDevice(e.target.value)}
+                className="h-8 w-[200px] appearance-none rounded-lg border border-border bg-surface/70 px-3 pr-8 text-xs font-medium text-ink/85 outline-none transition-colors hover:border-primary/30 focus:border-primary/50 focus:bg-surface lg:h-9 lg:w-[280px]"
+              >
+                {devices.map((d) => (
+                  <option key={d.deviceId} value={d.deviceId}>
+                    {d.name} ({d.deviceId.slice(-4)})
+                  </option>
+                ))}
+              </select>
+              <svg
+                aria-hidden="true"
+                className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted/60"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              </svg>
+            </div>
             <div className="text-right">
               <div className="text-xs font-medium text-ink/70">{user?.name ?? "Bair1"}</div>
               <div className="text-[10px] text-muted/60 lg:hidden">{lastUpdatedText}</div>
