@@ -1,8 +1,16 @@
-import { getUser, upsertUser } from "@/lib/users";
+import { getAllUsers, getUser, upsertUser } from "@/lib/users";
 import { verifyAuth0Token } from "@/lib/auth";
 
 // Bootstrap the first super_admin. Only works if no super_admin exists yet.
 export async function POST(request: Request) {
+  const bootstrapSecret = process.env.ADMIN_BOOTSTRAP_SECRET;
+  if (bootstrapSecret) {
+    const provided = request.headers.get("x-bootstrap-secret");
+    if (provided !== bootstrapSecret) {
+      return Response.json({ error: "Invalid bootstrap secret" }, { status: 403 });
+    }
+  }
+
   const auth = request.headers.get("authorization");
   if (!auth?.startsWith("Bearer ")) {
     return Response.json({ error: "Bearer token required" }, { status: 401 });
@@ -12,6 +20,15 @@ export async function POST(request: Request) {
   const payload = await verifyAuth0Token(token);
   if (!payload) {
     return Response.json({ error: "Invalid token" }, { status: 401 });
+  }
+
+  const users = await getAllUsers();
+  const superAdmin = users.find((user) => user.role === "super_admin");
+  if (superAdmin && superAdmin.userId !== payload.sub) {
+    return Response.json(
+      { error: "super_admin already exists" },
+      { status: 403 }
+    );
   }
 
   const existing = await getUser(payload.sub);

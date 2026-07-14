@@ -1,20 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
+import { getDevice, getDevicesForUser } from "@/lib/devices";
 import { getReadings, getReadingsInRange, Reading } from "@/lib/dynamo";
 import { getAllDevices } from "@/lib/dynamo";
 
 export const dynamic = "force-dynamic";
 
-const API_KEY = process.env.SENSOR_API_KEY!;
 const DEFAULT_LIMIT = 1000;
 const MAX_LIMIT = 10000;
-
-function extractApiKey(req: NextRequest): string | null {
-  const xApiKey = req.headers.get("x-api-key");
-  if (xApiKey) return xApiKey;
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  return null;
-}
 
 function escapeCsvField(value: unknown): string {
   if (value == null) return "";
@@ -56,8 +49,11 @@ function readingsToCsv(readings: Reading[]): string {
 }
 
 export async function GET(req: NextRequest) {
-  const key = extractApiKey(req);
-  if (key !== API_KEY) {
+  const principal = await validateApiKey(
+    extractApiKeyFromHeaders(req.headers),
+    ["export:readings"]
+  );
+  if (!principal) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -83,9 +79,17 @@ export async function GET(req: NextRequest) {
     // Determine which devices to export
     let deviceIds: string[];
     if (deviceParam) {
+      if (principal.type === "developer") {
+        const device = await getDevice(deviceParam);
+        if (!device || device.ownerId !== principal.userId) {
+          return NextResponse.json({ error: "device not found" }, { status: 404 });
+        }
+      }
       deviceIds = [deviceParam];
     } else {
-      deviceIds = await getAllDevices();
+      deviceIds = principal.type === "system"
+        ? await getAllDevices()
+        : (await getDevicesForUser(principal.userId)).map((device) => device.deviceId);
     }
 
     // Gather readings

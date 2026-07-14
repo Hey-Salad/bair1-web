@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDevice } from "@/lib/devices";
 import { getLatestReading } from "@/lib/dynamo";
+import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
 
 export const dynamic = "force-dynamic";
-
-const API_KEY = process.env.SENSOR_API_KEY!;
-
-function extractApiKey(req: NextRequest): string | null {
-  const xApiKey = req.headers.get("x-api-key");
-  if (xApiKey) return xApiKey;
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  return null;
-}
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  const key = extractApiKey(req);
-  if (key !== API_KEY) {
+  const principal = await validateApiKey(
+    extractApiKeyFromHeaders(req.headers),
+    ["read:devices"]
+  );
+  if (!principal) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -32,6 +26,9 @@ export async function GET(
 
     const device = await getDevice(deviceId);
     if (!device) {
+      return NextResponse.json({ error: "device not found" }, { status: 404 });
+    }
+    if (principal.type === "developer" && device.ownerId !== principal.userId) {
       return NextResponse.json({ error: "device not found" }, { status: 404 });
     }
 

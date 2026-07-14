@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAllDevicesRegistry } from "@/lib/devices";
+import { getAllDevicesRegistry, getDevicesForUser } from "@/lib/devices";
 import { getLatestReading } from "@/lib/dynamo";
+import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
 
 export const dynamic = "force-dynamic";
 
-const API_KEY = process.env.SENSOR_API_KEY!;
-
-function extractApiKey(req: NextRequest): string | null {
-  const xApiKey = req.headers.get("x-api-key");
-  if (xApiKey) return xApiKey;
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  return null;
-}
-
 export async function GET(req: NextRequest) {
-  const key = extractApiKey(req);
-  if (key !== API_KEY) {
+  const principal = await validateApiKey(
+    extractApiKeyFromHeaders(req.headers),
+    ["read:devices"]
+  );
+  if (!principal) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
   try {
-    const devices = await getAllDevicesRegistry();
+    const devices = principal.type === "system"
+      ? await getAllDevicesRegistry()
+      : await getDevicesForUser(principal.userId);
 
     const devicesWithLatest = await Promise.all(
       devices.map(async (device) => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useAuth0 } from "@auth0/auth0-react";
 import Logo from "@/components/Logo";
 import AqiGauge from "@/components/AqiGauge";
@@ -11,6 +12,7 @@ import MapView from "@/components/MapView";
 import AnalyticsView from "@/components/AnalyticsView";
 import AIChatView from "@/components/AIChatView";
 import AdminView from "@/components/AdminView";
+import DeveloperView from "@/components/DeveloperView";
 import DataSourceBadge from "@/components/DataSourceBadge";
 import { getAqiState } from "@/lib/aqi";
 
@@ -47,7 +49,7 @@ export default function Dashboard() {
   const [selectedDevice, setSelectedDevice] = useState<string | null>(null);
   const [deviceLat, setDeviceLat] = useState<number | null>(null);
   const [deviceLng, setDeviceLng] = useState<number | null>(null);
-  const [gasVoltage, setGasVoltage] = useState<number | null>(null);
+  const [, setGasVoltage] = useState<number | null>(null);
   const [rssi, setRssi] = useState<number | null>(null);
   const [airState, setAirState] = useState<string | null>(null);
   const [uptimeMs, setUptimeMs] = useState<number | null>(null);
@@ -149,16 +151,24 @@ export default function Dashboard() {
   }, [selectedDevice]);
 
   useEffect(() => {
-    fetchLive();
+    const timer = window.setTimeout(() => {
+      void fetchLive();
+    }, 0);
     const interval = setInterval(fetchLive, 60000);
-    return () => clearInterval(interval);
+    return () => {
+      window.clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [fetchLive]);
 
   // Update device location when selection changes
   useEffect(() => {
-    const dev = devices.find((d) => d.deviceId === selectedDevice);
-    if (dev?.lat) setDeviceLat(dev.lat);
-    if (dev?.lng) setDeviceLng(dev.lng);
+    const timer = window.setTimeout(() => {
+      const dev = devices.find((d) => d.deviceId === selectedDevice);
+      if (dev?.lat) setDeviceLat(dev.lat);
+      if (dev?.lng) setDeviceLng(dev.lng);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selectedDevice, devices]);
 
   // Demo data when not live
@@ -226,7 +236,7 @@ export default function Dashboard() {
     <main className="flex-1 flex flex-col">
       <header className="sticky top-0 z-40 bg-bg/90 backdrop-blur-lg border-b border-border">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-4 py-3">
-          <a href="/"><Logo /></a>
+          <Link href="/"><Logo /></Link>
           <div className="flex items-center gap-3">
             <select
               value={selectedDevice ?? ""}
@@ -404,6 +414,7 @@ export default function Dashboard() {
             lng={deviceLng}
           />
         )}
+        {tab === "developer" && <DeveloperView />}
         {tab === "admin" && <AdminView />}
       </div>
 

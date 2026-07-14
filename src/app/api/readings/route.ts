@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
 import { getDb, ensureTable } from "@/lib/db";
 import { resolveCellTower } from "@/lib/geolocation";
 import { getDevice, createDevice } from "@/lib/devices";
 
-const API_KEY = process.env.SENSOR_API_KEY!;
-
-function extractApiKey(req: NextRequest): string | null {
-  // Support both x-api-key header and Authorization: Bearer <key>
-  const xApiKey = req.headers.get("x-api-key");
-  if (xApiKey) return xApiKey;
-  const auth = req.headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  return null;
-}
-
 export async function POST(req: NextRequest) {
-  const key = extractApiKey(req);
-  if (key !== API_KEY) {
+  const principal = await validateApiKey(
+    extractApiKeyFromHeaders(req.headers),
+    ["write:readings"]
+  );
+  if (!principal) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -60,13 +53,17 @@ export async function POST(req: NextRequest) {
     const sql = getDb();
     await ensureTable();
 
+    const existing = await getDevice(deviceId);
+    if (principal.type === "developer" && existing && existing.ownerId !== principal.userId) {
+      return NextResponse.json({ error: "device not found" }, { status: 404 });
+    }
+
     await sql`
       INSERT INTO readings (device_id, aqi, gas_raw, gas_voltage, air_state, rssi, firmware_version, uptime_ms, sample, transport, raw_payload)
       VALUES (${deviceId}, ${aqi}, ${gasRaw}, ${gasVoltage}, ${airState}, ${rssi}, ${firmwareVersion}, ${uptimeMs}, ${sample}, ${transport}, ${JSON.stringify(body)})
     `;
 
     // Auto-register device if not yet known
-    const existing = await getDevice(deviceId);
     if (!existing) {
       const family = body.family ? String(body.family) : "";
       const preferredName =
@@ -80,8 +77,8 @@ export async function POST(req: NextRequest) {
         location: "",
         lat: body.lat != null ? Number(body.lat) : null,
         lng: body.lng != null ? Number(body.lng) : null,
-        ownerId: "",
-        orgId: "default",
+        ownerId: principal.type === "developer" ? principal.userId : "",
+        orgId: principal.orgId,
         status: "active",
         createdAt: new Date().toISOString(),
       });
