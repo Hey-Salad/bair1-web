@@ -14,7 +14,9 @@ import {
 } from "recharts";
 import Logo from "@/components/Logo";
 import type { PublicFeedSnapshot } from "@/lib/public-feeds";
+import AirInsightCard from "./AirInsightCard";
 import LondonAirMap from "./LondonAirMap";
+import LiveAirChat from "./LiveAirChat";
 
 type Props = {
   initialSnapshot: PublicFeedSnapshot;
@@ -289,6 +291,8 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
         <div className="py-4 sm:py-5">
         {activeView === "graph" ? (
           <>
+            <AirInsightCard slug={snapshot.slug} />
+
             <section className="border border-border bg-surface">
           <div className="flex flex-col gap-3 border-b border-border p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
@@ -478,6 +482,14 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
             </article>
           ))}
             </section>
+
+            <div className="mt-3">
+              <LiveAirChat
+                feedName={snapshot.title || "Bair1 live air feed"}
+                location={snapshot.location}
+                deviceIds={snapshot.devices.map((device) => device.deviceId)}
+              />
+            </div>
           </>
         ) : (
           <LondonAirMap

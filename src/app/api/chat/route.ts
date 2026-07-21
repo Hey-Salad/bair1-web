@@ -1,15 +1,18 @@
-import { streamText, stepCountIs } from "ai";
+import { convertToModelMessages, streamText, stepCountIs } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { getLatestReading, getReadingsInRange } from "@/lib/dynamo";
 import { getAllDevicesRegistry } from "@/lib/devices";
 import { getAirQuality, getWeather, getPollenForecast } from "@/lib/google-env";
+import { GPT_5_6_MODEL } from "@/lib/openai";
 
 export async function POST(req: Request) {
-  const { messages } = await req.json();
+  const { messages, feedContext } = await req.json();
+  const pageContext = typeof feedContext === "string" ? feedContext.slice(0, 1_000) : "";
+  const modelMessages = await convertToModelMessages(messages);
 
   const result = streamText({
-    model: openai("gpt-4o-mini"),
+    model: openai(GPT_5_6_MODEL),
     system: `You are Bair, an AI air quality assistant embedded in the Bair1 dashboard. You have access to real-time sensor data, Google environmental APIs (air quality, weather, pollen), and device information.
 
 Be concise, friendly, and data-driven. When users ask about air quality, proactively fetch relevant data using your tools. Format numbers clearly and give actionable health advice.
@@ -22,8 +25,8 @@ When presenting AQI data:
 - 201-300: Very Unhealthy (purple) - avoid outdoors
 - 301+: Hazardous (maroon) - stay indoors
 
-Always cite whether data comes from "your sensor" or "Google Air Quality API".`,
-    messages,
+Always cite whether data comes from "your sensor" or "Google Air Quality API".${pageContext ? `\n\nThe user is viewing this public feed context: ${pageContext}` : ""}`,
+    messages: modelMessages,
     tools: {
       getSensorData: {
         description: "Get the latest reading from a specific sensor device",
