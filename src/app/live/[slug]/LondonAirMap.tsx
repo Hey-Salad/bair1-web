@@ -66,6 +66,17 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
     () => stations.find((station) => station.id === selectedId) ?? null,
     [selectedId, stations],
   );
+  const stationCounts = useMemo(
+    () => ({
+      low: stations.filter((station) => Math.max(station.pm25Index ?? 0, station.pm10Index ?? 0) < 4).length,
+      moderate: stations.filter((station) => {
+        const index = Math.max(station.pm25Index ?? 0, station.pm10Index ?? 0);
+        return index >= 4 && index < 7;
+      }).length,
+      high: stations.filter((station) => Math.max(station.pm25Index ?? 0, station.pm10Index ?? 0) >= 7).length,
+    }),
+    [stations],
+  );
   const selectedBair1 = selectedId === bair1Point.id;
 
   useEffect(() => {
@@ -175,9 +186,9 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
     <section className="border border-border bg-surface">
       <div className="flex flex-col gap-3 border-b border-border p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-lg font-semibold">London particulate network</h2>
+          <h2 className="text-lg font-semibold">London air quality map</h2>
           <p className="mt-1 text-xs text-muted">
-            {stations.length} active LAQN particulate stations · latest hourly index
+            Compare the indoor Bair1 feed with outdoor LAQN stations across London.
           </p>
         </div>
         <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
@@ -185,6 +196,21 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#00e676]" />Low</span>
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#ffb800]" />Moderate</span>
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#ff3b30]" />High</span>
+        </div>
+      </div>
+
+      <div className="grid border-b border-border text-xs sm:grid-cols-3">
+        <div className="border-b border-border p-4 text-muted sm:border-b-0 sm:border-r">
+          <p className="font-medium text-ink">Indoor vs outdoor</p>
+          <p className="mt-1.5 leading-5">Bair1 is an indoor kitchen sensor. Every other pin is an outdoor LAQN reference point.</p>
+        </div>
+        <div className="border-b border-border p-4 text-muted sm:border-b-0 sm:border-r">
+          <p className="font-medium text-ink">How to read the pins</p>
+          <p className="mt-1.5 leading-5">Colour shows the latest hourly particulate index. Select a pin to see PM2.5 and PM10 detail.</p>
+        </div>
+        <div className="p-4 text-muted">
+          <p className="font-medium text-ink">Network now</p>
+          <p className="mt-1.5 leading-5">{stations.length} stations · {stationCounts.low} low · {stationCounts.moderate} moderate · {stationCounts.high} high</p>
         </div>
       </div>
 

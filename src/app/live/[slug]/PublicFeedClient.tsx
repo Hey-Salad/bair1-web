@@ -169,7 +169,7 @@ function PmTooltip({ active, label, payload }: TooltipProps) {
 
 export default function PublicFeedClient({ initialSnapshot }: Props) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
-  const [activeView, setActiveView] = useState<"graph" | "map">("graph");
+  const [activeView, setActiveView] = useState<"live" | "map" | "studio">("live");
 
   useEffect(() => {
     let cancelled = false;
@@ -238,6 +238,14 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
   const latestReference = snapshot.referenceReadings.at(-1);
   const forecastEnd = forecast.at(-1)?.pm25 ?? null;
   const shareUrl = typeof window === "undefined" ? "" : window.location.href;
+  const studioChartData = useMemo(
+    () => chartData.map((point) => ({
+      time: Number(point.time),
+      sensorPm25: typeof point[`${referenceDeviceId}:pm25`] === "number" ? point[`${referenceDeviceId}:pm25`] as number : null,
+      forecastPm25: typeof point["forecast:pm25"] === "number" ? point["forecast:pm25"] as number : null,
+    })),
+    [chartData, referenceDeviceId],
+  );
 
   return (
     <main className="min-h-screen bg-bg font-mono text-ink">
@@ -267,32 +275,39 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
 
       <section className="mx-auto flex w-full max-w-[1600px] flex-col px-3 sm:px-6 lg:px-8">
 
-        <div className="flex border-b border-border" role="tablist" aria-label="Live data view">
+        <div className="flex overflow-x-auto border-b border-border" role="tablist" aria-label="Live data view">
           <button
             type="button"
             role="tab"
-            aria-selected={activeView === "graph"}
-            onClick={() => setActiveView("graph")}
-            className={`-mb-px h-12 border-b-2 px-5 text-sm transition ${activeView === "graph" ? "border-primary text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            aria-selected={activeView === "live"}
+            onClick={() => setActiveView("live")}
+            className={`-mb-px h-12 shrink-0 border-b-2 px-5 text-sm transition ${activeView === "live" ? "border-primary text-ink" : "border-transparent text-muted hover:text-ink"}`}
           >
-            Graph
+            Live air
           </button>
           <button
             type="button"
             role="tab"
             aria-selected={activeView === "map"}
             onClick={() => setActiveView("map")}
-            className={`-mb-px h-12 border-b-2 px-5 text-sm transition ${activeView === "map" ? "border-primary text-ink" : "border-transparent text-muted hover:text-ink"}`}
+            className={`-mb-px h-12 shrink-0 border-b-2 px-5 text-sm transition ${activeView === "map" ? "border-primary text-ink" : "border-transparent text-muted hover:text-ink"}`}
           >
             London map
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeView === "studio"}
+            onClick={() => setActiveView("studio")}
+            className={`-mb-px h-12 shrink-0 border-b-2 px-5 text-sm transition ${activeView === "studio" ? "border-primary text-ink" : "border-transparent text-muted hover:text-ink"}`}
+          >
+            Data Studio
           </button>
         </div>
 
         <div className="py-4 sm:py-5">
-        {activeView === "graph" ? (
+        {activeView === "live" ? (
           <>
-            <AirInsightCard slug={snapshot.slug} />
-
             <section className="border border-border bg-surface">
           <div className="flex flex-col gap-3 border-b border-border p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
@@ -440,58 +455,45 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
           </div>
             </section>
 
-            <section className="mt-3 grid gap-px border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-          <div className="bg-surface p-4">
-            <p className="text-sm text-muted">Current PM2.5</p>
-            <div className="mt-3 flex items-end gap-2">
-              <span className="text-5xl font-semibold">{formatPm(latestPm25)}</span>
-              <span className="pb-2 text-sm text-muted">ug/m3</span>
-            </div>
-            <p className="mt-2 text-sm text-primary">{aqiLabel(latestPm25)}</p>
-          </div>
-          <div className="bg-surface p-4">
-            <p className="text-sm text-muted">Forecast PM2.5 · +30 min</p>
-            <div className="mt-3 flex items-end gap-2">
-              <span className="text-5xl font-semibold text-[#c6ff4a]">{formatPm(forecastEnd)}</span>
-              <span className="pb-2 text-sm text-muted">ug/m3</span>
-            </div>
-            <p className="mt-2 text-xs text-muted">Trend model · experimental</p>
-          </div>
-          {snapshot.latest.map((reading) => (
-            <article key={reading.deviceId} className="bg-surface p-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium text-ink">{reading.label}</p>
-                <span className="h-2.5 w-2.5 rounded-full" style={{ background: reading.color }} />
+            <section className="mt-3 grid gap-px border border-border bg-border md:grid-cols-3">
+              <div className="bg-surface p-4">
+                <p className="text-sm text-muted">Current PM2.5</p>
+                <div className="mt-3 flex items-end gap-2">
+                  <span className="text-5xl font-semibold">{formatPm(latestPm25)}</span>
+                  <span className="pb-2 text-sm text-muted">ug/m3</span>
+                </div>
+                <p className="mt-2 text-sm text-primary">{aqiLabel(latestPm25)}</p>
               </div>
-              <p className="mt-1 text-xs text-muted">{reading.sensor}</p>
-              <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
-                <div>
-                  <p className="text-muted">PM1</p>
-                  <p className="text-lg font-semibold">{formatPm(reading.pm1)}</p>
+              <div className="bg-surface p-4">
+                <p className="text-sm text-muted">Forecast PM2.5 · +30 min</p>
+                <div className="mt-3 flex items-end gap-2">
+                  <span className="text-5xl font-semibold text-[#c6ff4a]">{formatPm(forecastEnd)}</span>
+                  <span className="pb-2 text-sm text-muted">ug/m3</span>
                 </div>
-                <div>
-                  <p className="text-muted">PM2.5</p>
-                  <p className="text-lg font-semibold">{formatPm(reading.pm25)}</p>
-                </div>
-                <div>
-                  <p className="text-muted">PM10</p>
-                  <p className="text-lg font-semibold">{formatPm(reading.pm10)}</p>
-                </div>
+                <p className="mt-2 text-xs text-muted">Trend model · experimental</p>
               </div>
-              <p className="mt-3 text-xs text-muted">{formatTime(reading.timestamp)}</p>
-            </article>
-          ))}
+              {latestPm25Reading ? (
+                <article className="bg-surface p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-sm font-medium text-ink">{latestPm25Reading.label}</p>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: latestPm25Reading.color }} />
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{latestPm25Reading.sensor}</p>
+                  <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                    <div><p className="text-muted">PM1</p><p className="text-lg font-semibold">{formatPm(latestPm25Reading.pm1)}</p></div>
+                    <div><p className="text-muted">PM2.5</p><p className="text-lg font-semibold">{formatPm(latestPm25Reading.pm25)}</p></div>
+                    <div><p className="text-muted">PM10</p><p className="text-lg font-semibold">{formatPm(latestPm25Reading.pm10)}</p></div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted">{formatTime(latestPm25Reading.timestamp)}</p>
+                </article>
+              ) : <div className="bg-surface p-4 text-sm text-muted">Waiting for a sensor reading.</div>}
             </section>
 
-            <div className="mt-3">
-              <LiveAirChat
-                feedName={snapshot.title || "Bair1 live air feed"}
-                location={snapshot.location}
-                deviceIds={snapshot.devices.map((device) => device.deviceId)}
-              />
+            <div className="mt-8">
+              <AirInsightCard slug={snapshot.slug} />
             </div>
           </>
-        ) : (
+        ) : activeView === "map" ? (
           <LondonAirMap
             stations={snapshot.referenceStations}
             bair1Point={{
@@ -502,6 +504,13 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
               pm25: latestPm25,
               timestamp: latestPm25Reading?.timestamp ?? null,
             }}
+          />
+        ) : (
+          <LiveAirChat
+            feedName={snapshot.title || "Bair1 live air feed"}
+            location={snapshot.location}
+            deviceIds={snapshot.devices.map((device) => device.deviceId)}
+            chartData={studioChartData}
           />
         )}
         </div>

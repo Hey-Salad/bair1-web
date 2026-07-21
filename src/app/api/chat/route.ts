@@ -5,6 +5,7 @@ import { getLatestReading, getReadingsInRange } from "@/lib/dynamo";
 import { getAllDevicesRegistry } from "@/lib/devices";
 import { getAirQuality, getWeather, getPollenForecast } from "@/lib/google-env";
 import { GPT_5_6_MODEL } from "@/lib/openai";
+import { getPublicFeedSnapshot } from "@/lib/public-feeds";
 
 export async function POST(req: Request) {
   const { messages, feedContext } = await req.json();
@@ -25,7 +26,7 @@ When presenting AQI data:
 - 201-300: Very Unhealthy (purple) - avoid outdoors
 - 301+: Hazardous (maroon) - stay indoors
 
-Always cite whether data comes from "your sensor" or "Google Air Quality API".${pageContext ? `\n\nThe user is viewing this public feed context: ${pageContext}` : ""}`,
+Always cite whether data comes from "your sensor", "LAQN", or "Google Air Quality API". Use the public feed tool for questions that compare Bair1 with LAQN.${pageContext ? `\n\nThe user is viewing this public feed context: ${pageContext}` : ""}`,
     messages: modelMessages,
     tools: {
       getSensorData: {
@@ -58,6 +59,43 @@ Always cite whether data comes from "your sensor" or "Google Air Quality API".${
             maxAqi: Math.max(...aqis),
             latest: readings[0],
             oldest: readings[readings.length - 1],
+          };
+        },
+      },
+      getPublicFeedData: {
+        description: "Get the latest Bair1 public feed readings, recent sensor history, and LAQN comparison data. Use for questions about the public live page or LAQN.",
+        inputSchema: z.object({
+          slug: z.string().default("kitchen").describe("Public feed slug, such as kitchen"),
+        }),
+        execute: async ({ slug }: { slug: string }) => {
+          const now = new Date();
+          const snapshot = await getPublicFeedSnapshot(slug, {
+            limit: 240,
+            from: new Date(now.getTime() - 30 * 60 * 1000).toISOString(),
+            to: now.toISOString(),
+            includeReferences: true,
+          });
+          if (!snapshot) return { error: "Public feed not found" };
+          const laqn = snapshot.referenceReadings.at(-1);
+          return {
+            location: snapshot.location,
+            updatedAt: snapshot.updatedAt,
+            sensors: snapshot.latest.map((reading) => ({
+              label: reading.label,
+              timestamp: reading.timestamp,
+              pm1: reading.pm1,
+              pm25: reading.pm25,
+              pm10: reading.pm10,
+            })),
+            laqn: laqn
+              ? {
+                  station: laqn.stationName,
+                  timestamp: laqn.timestamp,
+                  pm25: laqn.pm25,
+                  pm10: laqn.pm10,
+                  band: laqn.aqiBand,
+                }
+              : null,
           };
         },
       },
