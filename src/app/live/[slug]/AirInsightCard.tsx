@@ -111,13 +111,13 @@ export default function AirInsightCard({ slug }: Props) {
         </div>
       ) : isLoading ? (
         <p className="border-t border-border p-4 text-sm text-muted sm:px-5">Reading the latest sensor and reference values…</p>
-      ) : (
+      ) : !insight ? (
         <p className="border-t border-border p-4 text-sm text-muted sm:px-5">
           {hasError
             ? "Air Insight is temporarily unavailable. The live sensor values and forecast below remain available."
             : "Air Insight is unavailable. The live sensor values and forecast below remain available."}
         </p>
-      )}
+      ) : null}
     </section>
   );
 }
