@@ -11,11 +11,22 @@ type StudioChartPoint = {
   forecastPm25: number | null;
 };
 
+type StudioSummary = {
+  current: number;
+  change: number;
+  minimum: number;
+  maximum: number;
+  sampleCount: number;
+  from: number;
+  updatedAt: number;
+} | null;
+
 type Props = {
   feedName: string;
   location: string;
   deviceIds: string[];
   chartData: StudioChartPoint[];
+  summary: StudioSummary;
 };
 
 function messageText(message: UIMessage) {
@@ -35,13 +46,18 @@ function formatTime(value: number) {
   });
 }
 
+function formatChange(value: number) {
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${value.toFixed(1)}`;
+}
+
 const prompts = [
   "Compare the indoor reading with LAQN right now.",
   "What changed in the last 30 minutes?",
   "What does the forecast suggest for the next 30 minutes?",
 ];
 
-export default function LiveAirChat({ feedName, location, deviceIds, chartData }: Props) {
+export default function LiveAirChat({ feedName, location, deviceIds, chartData, summary }: Props) {
   const [input, setInput] = useState("");
   const { messages, sendMessage, status } = useChat({
     transport: new DefaultChatTransport({
@@ -111,6 +127,28 @@ export default function LiveAirChat({ feedName, location, deviceIds, chartData }
             <span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#60a5fa]" />Measured</span>
             <span className="inline-flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-[#c6ff4a]" />Forecast model</span>
           </div>
+          {summary ? (
+            <div className="mt-5 grid grid-cols-3 border border-border bg-bg text-xs">
+              <div className="p-3">
+                <p className="text-muted">Now</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{summary.current.toFixed(1)}</p>
+                <p className="mt-0.5 text-muted">µg/m³</p>
+              </div>
+              <div className="border-l border-border p-3">
+                <p className="text-muted">30 min change</p>
+                <p className={`mt-1 text-lg font-semibold ${summary.change > 0 ? "text-[#c6ff4a]" : "text-[#60a5fa]"}`}>{formatChange(summary.change)}</p>
+                <p className="mt-0.5 text-muted">µg/m³</p>
+              </div>
+              <div className="border-l border-border p-3">
+                <p className="text-muted">Measured range</p>
+                <p className="mt-1 text-lg font-semibold text-ink">{summary.minimum.toFixed(0)}–{summary.maximum.toFixed(0)}</p>
+                <p className="mt-0.5 text-muted">µg/m³</p>
+              </div>
+            </div>
+          ) : null}
+          <p className="mt-3 text-xs text-muted">
+            {summary ? `${summary.sampleCount} live samples · updated ${formatTime(summary.updatedAt)}` : "Waiting for live samples"}
+          </p>
         </aside>
 
         <div className="flex min-h-[440px] flex-col">

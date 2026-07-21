@@ -246,6 +246,26 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
     })),
     [chartData, referenceDeviceId],
   );
+  const studioSummary = useMemo(() => {
+    const samples = snapshot.readings
+      .filter((reading) => reading.deviceId === referenceDeviceId && reading.pm25 != null)
+      .map((reading) => ({ time: new Date(reading.timestamp).getTime(), value: reading.pm25 as number }))
+      .sort((a, b) => a.time - b.time);
+    if (!samples.length) return null;
+
+    const first = samples[0];
+    const latest = samples.at(-1)!;
+    const values = samples.map((sample) => sample.value);
+    return {
+      current: latest.value,
+      change: latest.value - first.value,
+      minimum: Math.min(...values),
+      maximum: Math.max(...values),
+      sampleCount: samples.length,
+      from: first.time,
+      updatedAt: latest.time,
+    };
+  }, [referenceDeviceId, snapshot.readings]);
 
   return (
     <main className="min-h-screen bg-bg font-mono text-ink">
@@ -511,6 +531,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
             location={snapshot.location}
             deviceIds={snapshot.devices.map((device) => device.deviceId)}
             chartData={studioChartData}
+            summary={studioSummary}
           />
         )}
         </div>
