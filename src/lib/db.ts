@@ -27,4 +27,8 @@ export async function ensureTable() {
     CREATE INDEX IF NOT EXISTS idx_readings_device_created
     ON readings (device_id, created_at DESC)
   `;
+  await sql`
+    CREATE INDEX IF NOT EXISTS idx_readings_created
+    ON readings (created_at)
+  `;
 }

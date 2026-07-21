@@ -58,9 +58,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "device not found" }, { status: 404 });
     }
 
-    await sql`
+    const inserted = await sql`
+      WITH expired AS (
+        DELETE FROM readings
+        WHERE created_at < NOW() - INTERVAL '14 days'
+      )
       INSERT INTO readings (device_id, aqi, gas_raw, gas_voltage, air_state, rssi, firmware_version, uptime_ms, sample, transport, raw_payload)
-      VALUES (${deviceId}, ${aqi}, ${gasRaw}, ${gasVoltage}, ${airState}, ${rssi}, ${firmwareVersion}, ${uptimeMs}, ${sample}, ${transport}, ${JSON.stringify(body)})
+      SELECT ${deviceId}, ${aqi}, ${gasRaw}, ${gasVoltage}, ${airState}, ${rssi}, ${firmwareVersion}, ${uptimeMs}, ${sample}, ${transport}, ${JSON.stringify(body)}
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM readings
+        WHERE device_id = ${deviceId}
+          AND created_at > NOW() - INTERVAL '1 minute'
+      )
+      RETURNING id
     `;
 
     // Auto-register device if not yet known
@@ -88,7 +99,14 @@ export async function POST(req: NextRequest) {
       await sql2`UPDATE devices SET lat = ${Number(body.lat)}, lng = ${Number(body.lng)} WHERE device_id = ${deviceId}`;
     }
 
-    return NextResponse.json({ ok: true, deviceId, aqi, pm25, timestamp: new Date().toISOString() });
+    return NextResponse.json({
+      ok: true,
+      stored: inserted.length > 0,
+      deviceId,
+      aqi,
+      pm25,
+      timestamp: new Date().toISOString(),
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "unknown error";
     console.error("[readings] POST error:", message);

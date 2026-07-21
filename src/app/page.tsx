@@ -1,493 +1,596 @@
+import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import CheckoutButton from "./checkout-button";
 
-const AQI_STATES = [
-  { level: "Good", range: "0–50", color: "oklch(0.700 0.160 135)", guidance: "Open windows. Enjoy the air." },
-  { level: "Moderate", range: "51–100", color: "oklch(0.820 0.150 85)", guidance: "Sensitive groups take care." },
-  { level: "Sensitive", range: "101–150", color: "oklch(0.700 0.170 55)", guidance: "Limit time outdoors." },
-  { level: "Unhealthy", range: "151–200", color: "oklch(0.550 0.200 25)", guidance: "Reduce outdoor exertion." },
-  { level: "Very Unhealthy", range: "201–300", color: "oklch(0.400 0.150 310)", guidance: "Avoid outdoor activity." },
-  { level: "Hazardous", range: "301+", color: "oklch(0.350 0.000 0)", guidance: "Stay indoors. Close windows." },
+export const metadata: Metadata = {
+  title: "Bair1 Air Quality Stack",
+  description:
+    "Bair1 connects a live air-quality device, mobile app, API, CLI, and MCP server into one stack.",
+};
+
+type IconName = "api" | "cli" | "device" | "docs" | "github" | "mcp" | "mobile" | "spark";
+
+const NAV_ITEMS = [
+  ["Home", "/"],
+  ["Device", "#device"],
+  ["Mobile", "#mobile"],
+  ["API", "/developers#rest-api"],
+  ["CLI", "/developers#cli"],
+  ["MCP", "/developers#mcp"],
+  ["Docs", "/developers"],
+] as const;
+
+const STACK_ITEMS: Array<{
+  id: string;
+  icon: IconName;
+  title: string;
+  description: string;
+  sample: string;
+}> = [
+  {
+    id: "cli",
+    icon: "cli",
+    title: "CLI",
+    description: "Query live readings, export history, and automate local workflows from the terminal.",
+    sample: "bair1 latest --device home",
+  },
+  {
+    id: "mcp",
+    icon: "mcp",
+    title: "MCP Server",
+    description: "Give agents air-quality context through structured tools and grounded responses.",
+    sample: "mcp connect bair1",
+  },
+  {
+    id: "api",
+    icon: "api",
+    title: "API",
+    description: "REST and GraphQL endpoints for live readings, device history, analytics, and exports.",
+    sample: "GET /api/v1/devices",
+  },
+  {
+    id: "mobile-stack",
+    icon: "mobile",
+    title: "Mobile App",
+    description: "Connect over BLE, review alerts, and keep the same dashboard model in your pocket.",
+    sample: "BLE pairing + live AQI",
+  },
+  {
+    id: "device-stack",
+    icon: "device",
+    title: "Device",
+    description: "MG24-powered WiFi and BLE hardware built around particulate sensing and local display.",
+    sample: "MG24 + PM sensors",
+  },
 ];
 
-const FEATURES = [
+const DEVICE_TIERS = [
   {
-    title: "Real-time readings",
-    description: "PM1, PM2.5, PM10 — updated every 60 seconds from your own sensor.",
+    tier: "lite",
+    name: "Bair1 Lite",
+    price: "£99",
+    sensor: "Bosch BMV080",
+    details: "Fanless PM1, PM2.5, and PM10 with WiFi, BLE, and OLED.",
+    featured: false,
   },
   {
-    title: "The bear tells you",
-    description: "One glance at the orb colour and expression. No numbers needed.",
+    tier: "pro",
+    name: "Bair1 Pro",
+    price: "£149",
+    sensor: "BMV080 + PMSA003I",
+    details: "Dual-sensor validation, MG24 BLE relay support, and API access.",
+    featured: true,
   },
   {
-    title: "7-day history",
-    description: "Spot patterns. See which days spike. Plan your week around the air.",
-  },
-  {
-    title: "Smart alerts",
-    description: "Set thresholds. Get notified before conditions worsen, not after.",
+    tier: "max",
+    name: "Bair1 Max",
+    price: "£229",
+    sensor: "BMV080 + PMSA003I + SPS30",
+    details: "Triple-sensor precision for deeper history and higher confidence.",
+    featured: false,
   },
 ];
+
+function Icon({ name, className = "h-5 w-5" }: { name: IconName; className?: string }) {
+  const common = {
+    className,
+    fill: "none",
+    stroke: "currentColor",
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    strokeWidth: 1.8,
+    viewBox: "0 0 24 24",
+  };
+
+  if (name === "api") {
+    return (
+      <svg {...common}>
+        <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" />
+        <path d="m4.5 8 7.5 4.2L19.5 8" />
+        <path d="M12 12.2V21" />
+      </svg>
+    );
+  }
+
+  if (name === "cli") {
+    return (
+      <svg {...common}>
+        <rect x="3" y="5" width="18" height="14" rx="2" />
+        <path d="m7 10 2.4 2L7 14" />
+        <path d="M12 15h5" />
+      </svg>
+    );
+  }
+
+  if (name === "device") {
+    return (
+      <svg {...common}>
+        <path d="M8.2 8.1c-.6-.9-1.6-1.7-2.9-1.7-.3 1.4.1 2.6 1 3.4" />
+        <path d="M15.8 8.1c.6-.9 1.6-1.7 2.9-1.7.3 1.4-.1 2.6-1 3.4" />
+        <rect x="5.8" y="7.8" width="12.4" height="11" rx="5.2" />
+        <path d="M9.5 12.3h.01" />
+        <path d="M14.5 12.3h.01" />
+        <path d="M11 15h2" />
+      </svg>
+    );
+  }
+
+  if (name === "docs") {
+    return (
+      <svg {...common}>
+        <path d="M6 3.5h8l4 4v13H6z" />
+        <path d="M14 3.5v4h4" />
+        <path d="M9 12h6" />
+        <path d="M9 16h4" />
+      </svg>
+    );
+  }
+
+  if (name === "github") {
+    return (
+      <svg {...common}>
+        <path d="M9 19.5c-4 .9-4-2-5.5-2.5" />
+        <path d="M15 22v-3.4a3 3 0 0 0-.8-2.3c2.7-.3 5.6-1.3 5.6-6a4.7 4.7 0 0 0-1.3-3.3 4.4 4.4 0 0 0-.1-3.3s-1-.3-3.4 1.3a11.7 11.7 0 0 0-6 0C6.6 3.4 5.6 3.7 5.6 3.7a4.4 4.4 0 0 0-.1 3.3 4.7 4.7 0 0 0-1.3 3.3c0 4.7 2.9 5.7 5.6 6A3 3 0 0 0 9 18.6V22" />
+      </svg>
+    );
+  }
+
+  if (name === "mcp") {
+    return (
+      <svg {...common}>
+        <path d="M7 4v6" />
+        <path d="M17 4v6" />
+        <path d="M5 10h14v2a7 7 0 0 1-14 0z" />
+        <path d="M12 19v2" />
+      </svg>
+    );
+  }
+
+  if (name === "mobile") {
+    return (
+      <svg {...common}>
+        <rect x="7" y="2.8" width="10" height="18.4" rx="2" />
+        <path d="M11 18h2" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg {...common}>
+      <path d="m12 3 1.5 5.2L19 10l-5.5 1.8L12 17l-1.5-5.2L5 10l5.5-1.8z" />
+      <path d="M19 16.5 20 20l3 1-3 1-1 3-1-3-3-1 3-1z" />
+    </svg>
+  );
+}
+
+function StackDock() {
+  return (
+    <div className="flex flex-wrap items-center gap-3 text-sm text-white/72">
+      {STACK_ITEMS.map((item) => (
+        <a
+          key={item.title}
+          href={`#${item.id}`}
+          className="inline-flex h-10 items-center gap-2 border border-border bg-bg/35 px-3 transition hover:border-primary/55 hover:text-white"
+        >
+          <Icon name={item.icon} className="h-4 w-4" />
+          {item.title}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function DashboardMockup() {
+  return (
+    <div className="relative">
+      <div className="overflow-hidden rounded-lg border border-primary/45 bg-surface/92 shadow-2xl shadow-black/60">
+        <div className="flex h-12 items-center gap-3 border-b border-primary/25 bg-bg/70 px-4">
+          <div className="flex gap-1.5" aria-hidden="true">
+            <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+            <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+            <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+          </div>
+          <div className="hidden h-7 flex-1 items-center justify-center border border-white/10 bg-white/[0.03] text-xs text-white/45 md:flex">
+            dashboard.bair1.live
+          </div>
+        </div>
+
+        <div className="grid min-h-[420px] grid-cols-1 md:grid-cols-[170px_1fr]">
+          <aside className="hidden border-r border-primary/20 bg-bg/35 p-4 md:block">
+            <div className="mb-5 flex items-center gap-2 text-lg font-semibold tracking-[0.18em] text-white">
+              <Image src="/bear-logo.png" alt="" width={30} height={30} className="h-7 w-7" />
+              BAIR<span className="text-primary">1</span>
+            </div>
+            <div className="space-y-2 text-xs text-white/60">
+              {["Overview", "Devices", "Alerts", "History"].map((item, index) => (
+                <div
+                  key={item}
+                  className={`flex items-center gap-2 border px-3 py-2 ${
+                    index === 0
+                      ? "border-primary/35 bg-primary/10 text-primary"
+                      : "border-transparent"
+                  }`}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          <div className="p-4 sm:p-6">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <div className="text-sm font-semibold text-white">Air Quality</div>
+                <div className="mt-1 text-xs text-white/45">Sample reading</div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-primary">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                Live-ready
+              </div>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-[1fr_1.05fr]">
+              <div className="flex flex-col items-center justify-center border border-white/10 bg-white/[0.03] p-5">
+                <div className="relative h-40 w-56">
+                  <svg viewBox="0 0 220 150" className="h-full w-full">
+                    <path
+                      d="M35 118 A75 75 0 0 1 185 118"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.12)"
+                      strokeLinecap="round"
+                      strokeWidth="14"
+                    />
+                    <path
+                      d="M35 118 A75 75 0 0 1 170 72"
+                      fill="none"
+                      stroke="var(--color-primary)"
+                      strokeLinecap="round"
+                      strokeWidth="14"
+                    />
+                  </svg>
+                  <div className="absolute inset-x-0 top-14 text-center">
+                    <div className="text-6xl font-light tracking-normal text-white">32</div>
+                    <div className="mt-1 text-xs font-medium uppercase text-white/55">AQI</div>
+                    <div className="mt-1 text-lg font-semibold text-primary">Good</div>
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-3 text-xs text-white/55">
+                  <span>MG24 BLE</span>
+                  <span className="h-1 w-1 rounded-full bg-white/35" />
+                  <span>WiFi bridge</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["PM2.5", "12", "ug/m3", "var(--color-primary)"],
+                  ["PM10", "24", "ug/m3", "var(--color-clean-air)"],
+                  ["Temp", "22.4", "C", "var(--color-accent)"],
+                  ["Humidity", "48", "%", "var(--color-muted)"],
+                ].map(([label, value, unit, color]) => (
+                  <div key={label} className="border border-white/10 bg-white/[0.03] p-4">
+                    <div className="text-xs text-white/45">{label}</div>
+                    <div className="mt-2 flex items-end justify-between gap-2">
+                      <div>
+                        <div className="text-3xl font-light tracking-normal text-white">{value}</div>
+                        <div className="mt-0.5 text-[11px] text-white/45">{unit}</div>
+                      </div>
+                      <svg width="64" height="28" viewBox="0 0 64 28" aria-hidden="true">
+                        <path
+                          d="M2 18c8 0 8-7 16-7s8 7 16 7 8-7 16-7 8 5 12 5"
+                          fill="none"
+                          stroke={color}
+                          strokeLinecap="round"
+                          strokeWidth="2"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 border border-white/10 bg-white/[0.03] p-4 sm:grid-cols-[120px_1fr]">
+              <div className="relative min-h-28 overflow-hidden bg-black/30">
+                <Image
+                  src="/bair1-device-only.png"
+                  alt="Bair1 air quality hardware device"
+                  fill
+                  sizes="160px"
+                  className="object-cover object-center opacity-90"
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div>
+                  <div className="text-xs text-white/45">Device</div>
+                  <div className="mt-1 text-sm font-semibold text-white">Bair1 Pro</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/45">Transport</div>
+                  <div className="mt-1 text-sm font-semibold text-primary">BLE + WiFi</div>
+                </div>
+                <div>
+                  <div className="text-xs text-white/45">Firmware</div>
+                  <div className="mt-1 text-sm font-semibold text-white">MG24-ready</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute -bottom-8 left-1/2 hidden w-[82%] -translate-x-1/2 items-center justify-between rounded-lg border border-primary/45 bg-bg/90 p-2 shadow-xl shadow-black/50 lg:flex">
+        {STACK_ITEMS.map((item) => (
+          <a
+            key={item.title}
+            href={`#${item.id}`}
+            className="flex items-center gap-2 px-3 py-2 text-xs text-white/70 transition hover:text-primary"
+          >
+            <Icon name={item.icon} className="h-4 w-4" />
+            {item.title}
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen flex flex-col">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-bg/90 backdrop-blur-md border-b border-border">
-        <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
-          <Link href="/" className="flex items-center gap-2.5">
-            <Image src="/bear-logo.png" alt="Bair1" width={36} height={36} className="object-contain" />
-            <span className="text-xl font-bold tracking-tight text-ink" style={{ fontFamily: 'var(--font-display)' }}>
-              Bair<span className="text-primary">1</span>
+    <main className="min-h-screen bg-bg text-white">
+      <section className="relative min-h-[calc(100svh-6rem)] overflow-hidden border-b border-white/10">
+        <Image
+          src="/bair1-hero-texture.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-55 saturate-[0.75] hue-rotate-[55deg]"
+        />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,6,4,0.92)_0%,rgba(5,6,4,0.72)_40%,rgba(5,6,4,0.22)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-48 bg-gradient-to-t from-bg to-transparent" />
+
+        <header className="relative z-10 mx-auto flex max-w-[1920px] items-center justify-between px-6 py-7 sm:px-10 lg:px-16">
+          <Link href="/" className="flex items-center gap-3">
+            <Image src="/bear-logo.png" alt="Bair1" width={42} height={42} className="h-10 w-10" />
+            <span className="text-xl font-semibold tracking-[0.22em] text-white">
+              BAIR<span className="text-primary">1</span>
             </span>
           </Link>
-          <div className="flex items-center gap-4">
+
+          <nav className="hidden items-center gap-8 text-sm text-white/70 lg:flex" aria-label="Primary navigation">
+            {NAV_ITEMS.map(([label, href], index) => (
+              <Link
+                key={label}
+                href={href}
+                className={`border-b pb-2 transition ${
+                  index === 0
+                    ? "border-primary text-primary"
+                    : "border-transparent hover:border-white/30 hover:text-white"
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href="https://github.com/Hey-Salad/bair-one-air-monitor"
+              className="hidden h-10 items-center gap-2 rounded-full border border-white/15 bg-bg/30 px-4 text-sm text-white/80 transition hover:border-primary/55 hover:text-white sm:flex"
+            >
+              <Icon name="github" className="h-4 w-4" />
+              GitHub
+            </Link>
             <Link
               href="https://app.bair1.live"
-              className="text-sm font-medium text-muted hover:text-ink transition-colors hidden sm:block"
+              className="h-10 rounded-md bg-primary px-4 text-sm font-semibold text-white transition hover:bg-primary-hover"
             >
               Dashboard
             </Link>
-            <Link
-              href="/firmware"
-              className="text-sm font-medium text-muted hover:text-ink transition-colors hidden sm:block"
-            >
-              Firmware
-            </Link>
-            <Link
-              href="#sensor"
-              className="bg-primary text-white text-sm font-semibold px-5 py-2.5 rounded-lg hover:bg-primary-hover transition-colors"
-            >
-              Get Sensor
-            </Link>
           </div>
-        </div>
-      </nav>
+        </header>
 
-      {/* Hero */}
-      <section className="pt-16 pb-24 sm:pt-24 sm:pb-32">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
+        <div className="relative z-10 mx-auto grid max-w-[1920px] items-center gap-12 px-6 pb-16 pt-10 sm:px-10 lg:grid-cols-[0.92fr_1.08fr] lg:px-16 lg:pb-24 lg:pt-14">
+          <div>
+            <h1 className="max-w-5xl font-sans text-6xl font-light leading-[0.98] tracking-normal text-white sm:text-7xl lg:text-[7.5rem]">
+              <span className="block">Bair1</span>
+              <span className="block">air quality stack.</span>
+            </h1>
+            <p className="mt-8 max-w-2xl text-lg leading-8 text-white/70 sm:text-xl">
+              A live device, mobile app, API, CLI, and MCP server for air quality data you can act on.
+            </p>
+
+            <div className="mt-9 flex flex-wrap items-center gap-4">
+              <Link
+                href="https://app.bair1.live"
+                className="inline-flex h-14 items-center gap-3 rounded-md bg-primary px-7 text-base font-semibold text-white transition hover:bg-primary-hover"
+              >
+                Open dashboard
+                <span aria-hidden="true">-&gt;</span>
+              </Link>
+              <Link
+                href="/developers"
+                className="inline-flex h-14 items-center gap-3 rounded-md border border-white/15 bg-bg/20 px-7 text-base font-semibold text-white/80 transition hover:border-primary/60 hover:text-white"
+              >
+                Read docs
+                <Icon name="docs" className="h-4 w-4" />
+              </Link>
+            </div>
+
+            <div className="mt-10">
+              <StackDock />
+            </div>
+          </div>
+
+          <DashboardMockup />
+        </div>
+      </section>
+
+      <section className="border-b border-white/10 bg-black" aria-labelledby="stack-heading">
+        <div className="mx-auto max-w-[1440px] px-6 py-14 sm:px-10 lg:px-14">
+          <div className="mb-8 flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
             <div>
-              <h1 className="text-ink mb-6">
-                Know your air.
-              </h1>
-              <p className="text-lg sm:text-xl text-muted leading-relaxed prose-cap mb-8">
-                The bear sniffs the air so you don&apos;t have to. Real-time air quality,
-                honestly delivered — from your own sensor to your screen.
+              <h2 id="stack-heading" className="text-3xl font-light tracking-normal text-white sm:text-4xl">
+                One stack, five ways in.
+              </h2>
+              <p className="mt-3 max-w-2xl text-white/58">
+                The same readings move from the physical device into people-facing apps and agent-facing tools.
               </p>
-              <div className="flex flex-wrap gap-3 mb-10">
-                <Link
-                  href="https://app.bair1.live"
-                  className="bg-primary text-white font-semibold px-7 py-3.5 rounded-lg hover:bg-primary-hover transition-colors"
-                >
-                  Open Dashboard
-                </Link>
-                <Link
-                  href="#sensor"
-                  className="bg-surface text-ink font-semibold px-7 py-3.5 rounded-lg border border-border hover:border-muted transition-colors"
-                >
-                  Get a Sensor
-                </Link>
-              </div>
             </div>
-            <div className="flex items-center justify-center">
-              <div className="relative">
-                <Image
-                  src="/bear-sensor-front.jpg"
-                  alt="The Bair1 sensor — a teddy bear with air quality sensors strapped to its chest"
-                  width={480}
-                  height={480}
-                  className="object-cover rounded-2xl"
-                  priority
-                />
-              </div>
-            </div>
+            <Link href="/developers" className="text-sm font-semibold text-primary hover:text-clean-air">
+              Developer platform -&gt;
+            </Link>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+            {STACK_ITEMS.map((item) => (
+              <article
+                id={item.id}
+                key={item.title}
+                className="min-h-60 border border-primary/25 bg-surface p-6"
+              >
+                <Icon name={item.icon} className="h-8 w-8 text-white/80" />
+                <h3 className="mt-5 text-xl font-semibold tracking-normal text-white">{item.title}</h3>
+                <p className="mt-4 text-sm leading-6 text-white/58">{item.description}</p>
+                <div className="mt-6 border border-white/10 bg-bg/55 px-3 py-2 font-mono text-xs text-primary">
+                  {item.sample}
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="py-20 border-y border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-ink mb-6">How it works</h2>
-          <p className="text-muted mb-16 prose-cap text-lg">
-            Plug in. Connect to WiFi. The bear starts sniffing. Under 2 minutes, no apps to configure.
-          </p>
-          <div className="grid sm:grid-cols-3 gap-12">
-            <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
-                </svg>
-              </div>
-              <h3 className="text-ink font-bold mb-2">Plug in your sensor</h3>
-              <p className="text-muted leading-relaxed">Connects to WiFi and starts publishing air quality readings automatically.</p>
-            </div>
-            <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <h3 className="text-ink font-bold mb-2">Bear sniffs the air</h3>
-              <p className="text-muted leading-relaxed">Readings appear instantly. The orb colour and expression tell you everything at a glance.</p>
-            </div>
-            <div>
-              <div className="w-14 h-14 rounded-xl bg-primary/15 flex items-center justify-center mb-5">
-                <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} className="text-primary">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-ink font-bold mb-2">You act</h3>
-              <p className="text-muted leading-relaxed">Clear guidance: open windows, wear a mask, stay indoors. No jargon, no guessing.</p>
-            </div>
+      <section id="mobile" className="overflow-hidden border-b border-white/10 bg-bg">
+        <div className="mx-auto grid max-w-[1440px] gap-10 px-6 py-20 sm:px-10 lg:grid-cols-[0.85fr_1.15fr] lg:px-14">
+          <div>
+            <h2 className="text-4xl font-light tracking-normal text-white sm:text-5xl">The live UI follows the dashboard.</h2>
+            <p className="mt-5 max-w-xl text-lg leading-8 text-white/62">
+              Bair1 keeps the same air-quality model across the web dashboard, iPhone flow, BLE pairing, and developer surfaces.
+            </p>
           </div>
-        </div>
-      </section>
 
-      {/* Features */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-ink mb-6">Everything at a glance</h2>
-          <p className="text-muted mb-16 prose-cap text-lg">
-            One screen, full picture. Understand air quality in under 2 seconds.
-          </p>
-          <div className="grid sm:grid-cols-2 gap-x-12 gap-y-10">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="border-l-2 border-primary/30 pl-6">
-                <h3 className="text-ink font-bold mb-1.5">{f.title}</h3>
-                <p className="text-muted leading-relaxed">{f.description}</p>
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              ["BLE", "Connect the MG24 device from the iPhone path."],
+              ["Live", "Show the same AQI state, PM readings, and guidance as the dashboard."],
+              ["Agents", "Expose data through MCP and API instead of screenshots or scraped UI."],
+            ].map(([title, body]) => (
+              <div key={title} className="border border-white/10 bg-white/[0.03] p-6">
+                <div className="text-4xl font-light text-primary">{title}</div>
+                <p className="mt-5 text-sm leading-6 text-white/60">{body}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Origin Story */}
-      <section className="py-24 border-y border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="grid md:grid-cols-2 gap-16 items-center">
-            <div>
-              <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer">
-                <Image
-                  src="/hackathon-badge.avif"
-                  alt="Built in London hackathon badge by Luma"
-                  width={120}
-                  height={120}
-                  className="rounded-xl mb-8 hover:opacity-80 transition-opacity"
-                />
-              </a>
-              <h2 className="text-ink mb-6">Born at a hackathon.<br />Built for your lungs.</h2>
-              <p className="text-muted text-lg leading-relaxed prose-cap mb-6">
-                Bair1 started as a hackathon project at{" "}
-                <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                  Built in London
-                </a>. The idea was simple:
-                take the swag teddy bear, strap an air quality sensor to it, and see what happens.
-              </p>
-              <p className="text-muted leading-relaxed prose-cap">
-                Turns out a bear that sniffs the air and tells you whether to open the window
-                is something people actually want. So we kept building. The Auth0 teddy
-                got a Bosch BMV080, a Plantower laser, an OLED screen, and a mission.
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <Image
-                src="/bear-original.jpg"
-                alt="The original Auth0 hackathon teddy bear sitting on a laptop"
-                width={400}
-                height={500}
-                className="object-cover rounded-xl col-span-2 w-full h-64 sm:h-80"
-              />
-              <Image
-                src="/bear-sensor-front.jpg"
-                alt="The bear with sensors attached — front view"
-                width={400}
-                height={400}
-                className="object-cover rounded-xl w-full h-40 sm:h-52"
-              />
-              <Image
-                src="/bear-sensor-angle.jpg"
-                alt="The bear with sensors attached — angle view showing wiring"
-                width={400}
-                height={400}
-                className="object-cover rounded-xl w-full h-40 sm:h-52"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Social Proof */}
-      <section className="py-16 sm:py-24">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-10 sm:mb-16">
-            <h2 className="text-ink mb-3 sm:mb-4">Early feedback</h2>
+      <section id="device" className="bg-black">
+        <div className="mx-auto grid max-w-[1440px] gap-10 px-6 py-20 sm:px-10 lg:grid-cols-[0.9fr_1.1fr] lg:px-14">
+          <div>
+            <Image
+              src="/bair1-device-only.png"
+              alt="Bair1 air quality hardware device without the carry case"
+              width={880}
+              height={1184}
+              className="h-full max-h-[660px] w-full rounded-lg object-cover object-center"
+            />
           </div>
 
-          {/* Tweet grid — horizontal scroll on mobile, masonry on larger */}
-          <div className="sm:hidden -mx-4 px-4 overflow-x-auto scrollbar-hide">
-            <div className="flex gap-3 w-max pb-4">
-              {[
-                { src: "/tweets/maya.jpg", alt: "Tweet from Maya Avendaño: woah cool to see more hardware projects from you!" },
-                { src: "/tweets/pauline.jpg", alt: "Tweet from Pauline P. Narvas: You cooked!" },
-                { src: "/tweets/dom.jpg", alt: "Tweet from Dom Sip: I want to buy it. How much?" },
-                { src: "/tweets/ese.jpg", alt: "Tweet from Ese Kpeji: Clear the kitchen for this guy" },
-                { src: "/tweets/nima.jpg", alt: "Tweet from Nima: This is super dope Peter" },
-                { src: "/tweets/anselm.jpg", alt: "Tweet from Anselm Eickhoff: This is really cool and I love the format" },
-                { src: "/tweets/cliff.jpg", alt: "Tweet from Cliffinkent: This is awesome!" },
-                { src: "/tweets/abdussalam.jpg", alt: "Tweet from Abdussalam Popoola: We met too!!" },
-                { src: "/tweets/henry.jpg", alt: "Tweet from Henry: Wow" },
-              ].map((tweet) => (
-                <div key={tweet.src} className="shrink-0 w-72 rounded-xl border border-border overflow-hidden">
-                  <Image
-                    src={tweet.src}
-                    alt={tweet.alt}
-                    width={600}
-                    height={300}
-                    className="w-full h-auto"
-                  />
+          <div className="flex flex-col justify-center">
+            <h2 className="text-4xl font-light tracking-normal text-white sm:text-5xl">Bair1 device kits.</h2>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/62">
+              WiFi, BLE, OLED, and one year of Pro software. Choose the sensing package that fits the job.
+            </p>
+
+            <div className="mt-8 grid gap-4">
+              {DEVICE_TIERS.map((tier) => (
+                <div
+                  key={tier.tier}
+                  className={`grid gap-4 border p-5 sm:grid-cols-[1fr_auto] sm:items-center ${
+                    tier.featured
+                      ? "border-primary/55 bg-primary/8"
+                      : "border-white/10 bg-white/[0.025]"
+                  }`}
+                >
+                  <div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h3 className="text-xl font-semibold tracking-normal text-white">{tier.name}</h3>
+                      {tier.featured && (
+                        <span className="rounded-full bg-primary px-3 py-1 text-xs font-semibold text-white">
+                          Recommended
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-sm font-medium text-primary">{tier.sensor}</div>
+                    <p className="mt-2 text-sm leading-6 text-white/58">{tier.details}</p>
+                  </div>
+
+                  <div className="flex items-center gap-4 sm:flex-col sm:items-end">
+                    <div className="text-3xl font-light tracking-normal text-white">{tier.price}</div>
+                    <CheckoutButton
+                      tier={tier.tier}
+                      className={`h-11 rounded-md px-5 text-sm font-semibold transition ${
+                        tier.featured
+                          ? "bg-primary text-white hover:bg-primary-hover"
+                          : "border border-white/15 text-white hover:border-primary/60"
+                      }`}
+                    >
+                      Order
+                    </CheckoutButton>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
-          <div className="hidden sm:block columns-2 lg:columns-3 gap-4 space-y-4">
-            {[
-              { src: "/tweets/maya.jpg", alt: "Tweet from Maya Avendaño: woah cool to see more hardware projects from you!" },
-              { src: "/tweets/pauline.jpg", alt: "Tweet from Pauline P. Narvas: You cooked!" },
-              { src: "/tweets/dom.jpg", alt: "Tweet from Dom Sip: I want to buy it. How much?" },
-              { src: "/tweets/ese.jpg", alt: "Tweet from Ese Kpeji: Clear the kitchen for this guy" },
-              { src: "/tweets/nima.jpg", alt: "Tweet from Nima: This is super dope Peter" },
-              { src: "/tweets/anselm.jpg", alt: "Tweet from Anselm Eickhoff: This is really cool and I love the format" },
-              { src: "/tweets/cliff.jpg", alt: "Tweet from Cliffinkent: This is awesome!" },
-              { src: "/tweets/abdussalam.jpg", alt: "Tweet from Abdussalam Popoola: We met too!!" },
-              { src: "/tweets/henry.jpg", alt: "Tweet from Henry: Wow" },
-            ].map((tweet) => (
-              <div key={tweet.src} className="break-inside-avoid rounded-xl border border-border overflow-hidden hover:border-muted/40 transition-colors">
-                <Image
-                  src={tweet.src}
-                  alt={tweet.alt}
-                  width={600}
-                  height={300}
-                  className="w-full h-auto"
-                />
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
-      {/* AQI States */}
-      <section className="py-24">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-ink mb-6">Six states. One glance.</h2>
-          <p className="text-muted mb-16 prose-cap text-lg leading-relaxed">
-            The orb colour and bear expression change with the air. You never need to read a number.
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {AQI_STATES.map((s) => (
-              <div
-                key={s.level}
-                className="rounded-xl p-5 bg-surface border border-border hover:border-muted/30 transition-colors"
-              >
-                <div
-                  className="w-10 h-10 rounded-full mb-4 orb-glow"
-                  style={{ backgroundColor: s.color, boxShadow: `0 0 24px ${s.color}` }}
-                />
-                <div className="text-sm font-bold text-ink mb-0.5">{s.level}</div>
-                <div className="text-xs text-muted/60 mb-3">{s.range} AQI</div>
-                <div className="text-xs text-muted leading-relaxed">{s.guidance}</div>
-              </div>
-            ))}
+      <footer className="border-t border-white/10 bg-bg">
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-5 px-6 py-10 text-sm text-white/48 sm:px-10 md:flex-row md:items-center md:justify-between lg:px-14">
+          <div className="flex items-center gap-3">
+            <Image src="/bear-logo.png" alt="" width={28} height={28} className="h-7 w-7" />
+            <span>Bair1 by HeySalad</span>
           </div>
-        </div>
-      </section>
-
-      {/* Sensor Products */}
-      <section id="sensor" className="py-24 border-y border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-ink mb-6">Same bear. You choose the brains.</h2>
-          <p className="text-muted mb-16 prose-cap text-lg">
-            Every Bair1 includes WiFi, BLE, OLED display, and 1 year of Pro software free.
-          </p>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* Lite */}
-            <div className="rounded-2xl border border-border p-7 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Dev Kit — Lite</h3>
-                <p className="text-sm text-muted mt-0.5">1 sensor · Ships now</p>
-              </div>
-              <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
-                <div className="text-sm font-bold text-ink">Bosch BMV080</div>
-                <div className="text-xs text-muted mt-0.5">Photoacoustic — fanless &amp; silent</div>
-              </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {[
-                  "PM1, PM2.5 & PM10",
-                  "Fanless — completely silent",
-                  "WiFi + BLE connectivity",
-                  "OLED live display",
-                  "Over-the-air updates",
-                  "1 year Pro software free",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
-                    <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mb-5">
-                <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£99</span>
-                <span className="text-sm text-muted ml-2">free UK shipping</span>
-              </div>
-              <CheckoutButton
-                tier="lite"
-                className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
-              >
-                Order Lite Kit
-              </CheckoutButton>
-            </div>
-
-            {/* Pro — recommended */}
-            <div className="rounded-2xl bg-primary/10 border border-primary/30 p-7 flex flex-col relative md:scale-[1.03]">
-              <div className="absolute top-5 right-5 bg-primary text-white text-xs font-bold px-3 py-1 rounded-full">
-                Recommended
-              </div>
-              <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Dev Kit — Pro</h3>
-                <p className="text-sm text-muted mt-0.5">2 sensors · Ships now</p>
-              </div>
-              <div className="bg-bg rounded-lg px-4 py-3 mb-6 border border-border">
-                <div className="text-sm font-bold text-ink">BMV080 + PMSA003I</div>
-                <div className="text-xs text-muted mt-0.5">Photoacoustic + laser cross-validation</div>
-              </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {[
-                  "Everything in Lite, plus:",
-                  "Dual-sensor cross-validation",
-                  "Laser + photoacoustic fusion",
-                  "Higher accuracy in all conditions",
-                  "Wildfire smoke detection",
-                  "API access included",
-                  "1 year Pro software free",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
-                    <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mb-5">
-                <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£149</span>
-                <span className="text-sm text-muted ml-2">free UK shipping</span>
-              </div>
-              <CheckoutButton
-                tier="pro"
-                className="bg-primary text-white font-semibold px-6 py-3 rounded-lg text-center hover:bg-primary-hover transition-colors text-sm cursor-pointer"
-              >
-                Order Pro Kit
-              </CheckoutButton>
-            </div>
-
-            {/* Max */}
-            <div className="rounded-2xl border border-border p-7 flex flex-col">
-              <div className="mb-6">
-                <h3 className="text-ink font-bold">Bair1 Dev Kit — Max</h3>
-                <p className="text-sm text-muted mt-0.5">3 sensors · Ships now</p>
-              </div>
-              <div className="bg-surface rounded-lg px-4 py-3 mb-6 border border-border">
-                <div className="text-sm font-bold text-ink">BMV080 + PMSA003I + SPS30</div>
-                <div className="text-xs text-muted mt-0.5">Triple-sensor, research-grade precision</div>
-              </div>
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {[
-                  "Everything in Pro, plus:",
-                  "Sensirion SPS30 long-life laser",
-                  "Triple cross-validation",
-                  "Research-grade accuracy",
-                  "10-year sensor lifespan (SPS30)",
-                  "Priority support",
-                  "1 year Pro + API free",
-                ].map((item) => (
-                  <li key={item} className="flex items-start gap-2.5 text-sm text-muted">
-                    <svg className="w-4 h-4 text-primary shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-              <div className="mb-5">
-                <span className="text-3xl font-bold text-ink" style={{ fontFamily: 'var(--font-display)' }}>£229</span>
-                <span className="text-sm text-muted ml-2">free UK shipping</span>
-              </div>
-              <CheckoutButton
-                tier="max"
-                className="border border-border text-ink font-semibold px-6 py-3 rounded-lg text-center hover:bg-surface hover:border-muted transition-colors text-sm cursor-pointer"
-              >
-                Order Max Kit
-              </CheckoutButton>
-            </div>
-          </div>
-
-          <p className="text-center text-sm text-muted/60 mt-10">
-            All dev kits ship within 5 working days. Includes 1 year of Bair1 Pro software (worth £59.88). Have a promo code? Enter it at checkout.
-          </p>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-ink mb-4">Ready to know your air?</h2>
-          <p className="text-muted text-lg mb-10">Open the live dashboard or grab a sensor for your neighbourhood.</p>
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link
-              href="https://app.bair1.live"
-              className="bg-primary text-white font-semibold px-8 py-3.5 rounded-lg hover:bg-primary-hover transition-colors"
-            >
-              Open Dashboard
+          <div className="flex flex-wrap gap-5">
+            <Link href="https://app.bair1.live" className="hover:text-white">
+              Dashboard
             </Link>
-            <Link
-              href="#sensor"
-              className="bg-surface text-ink font-semibold px-8 py-3.5 rounded-lg border border-border hover:border-muted transition-colors"
-            >
-              Get a Sensor
+            <Link href="/developers" className="hover:text-white">
+              Developers
             </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-10 border-t border-border">
-        <div className="max-w-6xl mx-auto px-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5">
-              <Image src="/bear-logo.png" alt="Bair1" width={24} height={24} className="object-contain" />
-              <span className="text-sm text-muted">
-                Bair1 — A HeySalad Product
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted">
-              <Link href="https://app.bair1.live" className="hover:text-ink transition-colors">Dashboard</Link>
-              <Link href="/firmware" className="hover:text-ink transition-colors">Firmware</Link>
-              <a href="mailto:hello@heysalad.app" className="hover:text-ink transition-colors">Contact</a>
-              <a href="https://luma.com/1uv1oeuu?tk=CYoskc" target="_blank" rel="noopener noreferrer" className="hover:text-ink transition-colors">Built in London</a>
-            </div>
-          </div>
-          <div className="mt-8 text-center text-xs text-muted/40">
-            &copy; {new Date().getFullYear()} HeySalad. Know your air.
+            <Link href="/firmware" className="hover:text-white">
+              Firmware
+            </Link>
+            <a href="mailto:hello@heysalad.app" className="hover:text-white">
+              Contact
+            </a>
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 }

@@ -20,7 +20,7 @@ export default function OrderSuccess() {
         Thanks for your pre-order. You&apos;ll receive a confirmation email from Stripe shortly.
       </p>
       <p className="text-muted text-center max-w-md mb-10">
-        Your Bair1 sensor ships in July 2026. We&apos;ll email you with tracking details
+        Your Bair1 sensor ships in August 2026. We&apos;ll email you with tracking details
         and setup instructions before it arrives.
       </p>
       <div className="flex flex-wrap gap-3 justify-center">

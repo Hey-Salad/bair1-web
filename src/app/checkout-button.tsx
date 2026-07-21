@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function CheckoutButton({
   tier,
   children,
@@ -9,20 +11,13 @@ export default function CheckoutButton({
   children: React.ReactNode;
   className: string;
 }) {
-  async function handleCheckout() {
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tier }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    }
-  }
+  const router = useRouter();
 
   return (
-    <button onClick={handleCheckout} className={className}>
+    <button
+      onClick={() => router.push(`/checkout?tier=${tier}`)}
+      className={className}
+    >
       {children}
     </button>
   );

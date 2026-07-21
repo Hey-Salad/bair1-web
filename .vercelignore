@@ -1,0 +1,12 @@
+.agents
+.claude
+.cursor
+.gemini
+.kiro
+.env*
+!.env.example
+node_modules
+.next
+coverage
+output
+*.tsbuildinfo
