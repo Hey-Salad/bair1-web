@@ -32,11 +32,11 @@ displays real-time and historical data.
                    │  Vercel          │  www.bair1.live/api/readings
                    │  Next.js API     │
                    └────────┬─────────┘
-                            │ SQL INSERT
+                            │ DynamoDB write
                             ▼
                    ┌──────────────────┐
-                   │  Neon Postgres   │  readings table
-                   │  (serverless)    │
+                   │  Amazon DynamoDB │  bair1-readings
+                   │  (on-demand)     │
                    └──────────────────┘
 
                    ┌──────────────────┐
@@ -195,7 +195,7 @@ Worker relay (`bair1-relay.heysalad-o.workers.dev`) over HTTPS (TLS 1.2).
 ### Data Flow
 
 ```
-SIM800L (TLS 1.0) → AWS API Gateway → Lambda → Cloudflare Worker → Vercel API → Neon Postgres
+SIM800L (TLS 1.0) → AWS API Gateway → Lambda → Cloudflare Worker → Vercel API → DynamoDB
 ```
 
 ---
@@ -222,7 +222,9 @@ SIM800L (TLS 1.0) → AWS API Gateway → Lambda → Cloudflare Worker → Verce
 
 | Variable | Type | Description |
 |----------|------|-------------|
-| `DATABASE_URL` | secret | Neon Postgres connection string |
+| `AWS_REGION` | secret | DynamoDB region (`eu-west-2`) |
+| `AWS_ACCESS_KEY_ID` | secret | DynamoDB access credential |
+| `AWS_SECRET_ACCESS_KEY` | secret | DynamoDB access credential |
 | `SENSOR_API_KEY` | secret | Shared key for sensor ingestion |
 | `NEXT_PUBLIC_AUTH0_DOMAIN` | public | Auth0 tenant domain |
 | `NEXT_PUBLIC_AUTH0_CLIENT_ID` | public | Auth0 SPA client ID |
@@ -236,35 +238,20 @@ SIM800L (TLS 1.0) → AWS API Gateway → Lambda → Cloudflare Worker → Verce
 - Tailwind CSS v4 (OKLCH dark theme)
 - Auth0 React SDK v2
 - Mapbox GL JS
-- `@neondatabase/serverless`
+- Amazon DynamoDB (`bair1-readings`, `bair1-devices`, `bair1-api-keys`)
 - Stripe
 
 ---
 
-## 5. Database (Neon Postgres)
+## 5. Database (Amazon DynamoDB)
 
-### readings table
+### Tables
 
-```sql
-CREATE TABLE readings (
-  id              SERIAL PRIMARY KEY,
-  device_id       TEXT NOT NULL,
-  aqi             INTEGER NOT NULL DEFAULT 0,
-  gas_raw         INTEGER,
-  gas_voltage     REAL,
-  air_state       TEXT,
-  rssi            INTEGER,
-  firmware_version TEXT,
-  uptime_ms       BIGINT,
-  sample          INTEGER,
-  transport       TEXT,
-  raw_payload     JSONB,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-
-CREATE INDEX idx_readings_device_created
-  ON readings (device_id, created_at DESC);
-```
+| Table | Key | Purpose |
+|-------|-----|---------|
+| `bair1-readings` | `deviceId` + ISO `timestamp` | Time-series particulate readings and raw payloads. TTL removes records after 14 days. |
+| `bair1-devices` | `deviceId` | Device registry, ownership, and location. |
+| `bair1-api-keys` | `id` | Hashed developer keys, with hash, user, and organisation indexes. |
 
 ---
 
@@ -284,7 +271,7 @@ All secrets are stored as environment variables, never in source code.
 | Secret | Where Stored | Used By |
 |--------|-------------|---------|
 | `SENSOR_API_KEY` | Vercel env vars | bair1-web API route |
-| `DATABASE_URL` | Vercel env vars | bair1-web DB connection |
+| AWS credentials | Vercel env vars | bair1-web DynamoDB access |
 | `UPSTREAM_URL` | Wrangler secrets | bair1-relay Worker |
 | `UPSTREAM_API_KEY` | Wrangler secrets | bair1-relay Worker |
 | `STRIPE_SECRET_KEY` | Vercel env vars | bair1-web checkout |

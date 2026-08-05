@@ -1,5 +1,14 @@
 import { createHash, randomBytes } from "node:crypto";
-import { getDb } from "./db";
+import {
+  GetItemCommand,
+  PutItemCommand,
+  QueryCommand,
+  UpdateItemCommand,
+  type AttributeValue,
+} from "@aws-sdk/client-dynamodb";
+import { dynamoClient } from "./aws-dynamo";
+
+const TABLE = "bair1-api-keys";
 
 export type ApiKeyScope =
   | "read:devices"
@@ -40,83 +49,59 @@ function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
 
-function parseScopes(value: unknown): ApiKeyScope[] {
-  if (Array.isArray(value)) return value as ApiKeyScope[];
-  if (typeof value === "string") {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? (parsed as ApiKeyScope[]) : [];
-    } catch {
-      return [];
-    }
+function parseScopes(value: string | null): ApiKeyScope[] {
+  if (!value) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed as ApiKeyScope[] : [];
+  } catch {
+    return [];
   }
-  return [];
 }
 
-function parseRow(row: Record<string, unknown>): ApiKeyRecord {
+function text(item: Record<string, AttributeValue>, key: string): string | null {
+  return item[key]?.S ?? null;
+}
+
+function parseItem(item: Record<string, AttributeValue>): ApiKeyRecord {
   return {
-    id: String(row.id ?? ""),
-    name: String(row.name ?? ""),
-    prefix: String(row.prefix ?? ""),
-    userId: String(row.user_id ?? ""),
-    orgId: String(row.org_id ?? "default"),
-    scopes: parseScopes(row.scopes),
-    createdAt: row.created_at
-      ? new Date(row.created_at as string).toISOString()
-      : "",
-    lastUsedAt: row.last_used_at
-      ? new Date(row.last_used_at as string).toISOString()
-      : null,
-    revokedAt: row.revoked_at
-      ? new Date(row.revoked_at as string).toISOString()
-      : null,
+    id: text(item, "id") ?? "",
+    name: text(item, "name") ?? "",
+    prefix: text(item, "prefix") ?? "",
+    userId: text(item, "userId") ?? "",
+    orgId: text(item, "orgId") ?? "default",
+    scopes: parseScopes(text(item, "scopes")),
+    createdAt: text(item, "createdAt") ?? "",
+    lastUsedAt: text(item, "lastUsedAt"),
+    revokedAt: text(item, "revokedAt"),
   };
 }
 
-export async function ensureApiKeysTable(): Promise<void> {
-  const sql = getDb();
-  await sql`
-    CREATE TABLE IF NOT EXISTS api_keys (
-      id TEXT PRIMARY KEY,
-      key_hash TEXT NOT NULL UNIQUE,
-      prefix TEXT NOT NULL,
-      name TEXT NOT NULL,
-      user_id TEXT NOT NULL,
-      org_id TEXT NOT NULL DEFAULT 'default',
-      scopes JSONB NOT NULL DEFAULT '[]'::jsonb,
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      last_used_at TIMESTAMPTZ,
-      revoked_at TIMESTAMPTZ
-    )
-  `;
-  await sql`
-    CREATE INDEX IF NOT EXISTS idx_api_keys_user_created
-    ON api_keys (user_id, created_at DESC)
-  `;
+async function listByIndex(indexName: string, key: string, value: string): Promise<ApiKeyRecord[]> {
+  const records: ApiKeyRecord[] = [];
+  let exclusiveStartKey: Record<string, AttributeValue> | undefined;
+  do {
+    const result = await dynamoClient.send(new QueryCommand({
+      TableName: TABLE,
+      IndexName: indexName,
+      KeyConditionExpression: "#key = :value",
+      ExpressionAttributeNames: { "#key": key },
+      ExpressionAttributeValues: { ":value": { S: value } },
+      ScanIndexForward: false,
+      ExclusiveStartKey: exclusiveStartKey,
+    }));
+    records.push(...(result.Items ?? []).map(parseItem));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+  return records;
 }
 
 export async function listApiKeysForUser(userId: string): Promise<ApiKeyRecord[]> {
-  const sql = getDb();
-  await ensureApiKeysTable();
-  const rows = await sql`
-    SELECT id, prefix, name, user_id, org_id, scopes, created_at, last_used_at, revoked_at
-    FROM api_keys
-    WHERE user_id = ${userId}
-    ORDER BY created_at DESC
-  `;
-  return rows.map(parseRow);
+  return listByIndex("userId-createdAt-index", "userId", userId);
 }
 
 export async function listApiKeysForOrg(orgId: string): Promise<ApiKeyRecord[]> {
-  const sql = getDb();
-  await ensureApiKeysTable();
-  const rows = await sql`
-    SELECT id, prefix, name, user_id, org_id, scopes, created_at, last_used_at, revoked_at
-    FROM api_keys
-    WHERE org_id = ${orgId}
-    ORDER BY created_at DESC
-  `;
-  return rows.map(parseRow);
+  return listByIndex("orgId-createdAt-index", "orgId", orgId);
 }
 
 export async function createApiKey(input: {
@@ -125,70 +110,60 @@ export async function createApiKey(input: {
   orgId: string;
   scopes?: ApiKeyScope[];
 }): Promise<{ key: string; record: ApiKeyRecord }> {
-  const sql = getDb();
-  await ensureApiKeysTable();
-
-  const secret = `bair1_${randomBytes(24).toString("base64url")}`;
+  const key = `bair1_${randomBytes(24).toString("base64url")}`;
   const id = `key_${randomBytes(10).toString("hex")}`;
-  const prefix = secret.slice(0, 12);
+  const prefix = key.slice(0, 12);
   const scopes = input.scopes?.length ? input.scopes : DEFAULT_SCOPES;
-  const now = new Date().toISOString();
-
-  await sql`
-    INSERT INTO api_keys (id, key_hash, prefix, name, user_id, org_id, scopes, created_at)
-    VALUES (
-      ${id},
-      ${hashKey(secret)},
-      ${prefix},
-      ${input.name},
-      ${input.userId},
-      ${input.orgId},
-      ${JSON.stringify(scopes)}::jsonb,
-      ${now}
-    )
-  `;
-
-  return {
-    key: secret,
-    record: {
-      id,
-      name: input.name,
-      prefix,
-      userId: input.userId,
-      orgId: input.orgId,
-      scopes,
-      createdAt: now,
-      lastUsedAt: null,
-      revokedAt: null,
-    },
+  const createdAt = new Date().toISOString();
+  const record: ApiKeyRecord = {
+    id,
+    name: input.name,
+    prefix,
+    userId: input.userId,
+    orgId: input.orgId,
+    scopes,
+    createdAt,
+    lastUsedAt: null,
+    revokedAt: null,
   };
+
+  await dynamoClient.send(new PutItemCommand({
+    TableName: TABLE,
+    Item: {
+      id: { S: id },
+      keyHash: { S: hashKey(key) },
+      prefix: { S: prefix },
+      name: { S: input.name },
+      userId: { S: input.userId },
+      orgId: { S: input.orgId },
+      scopes: { S: JSON.stringify(scopes) },
+      createdAt: { S: createdAt },
+    },
+  }));
+  return { key, record };
 }
 
-export async function revokeApiKey(input: {
-  id: string;
-  userId?: string;
-  orgId?: string;
-}): Promise<void> {
-  const sql = getDb();
-  await ensureApiKeysTable();
-
-  if (input.userId) {
-    await sql`
-      UPDATE api_keys SET revoked_at = NOW()
-      WHERE id = ${input.id} AND user_id = ${input.userId}
-    `;
+export async function revokeApiKey(input: { id: string; userId?: string; orgId?: string }): Promise<void> {
+  const result = await dynamoClient.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: { id: { S: input.id } },
+  }));
+  if (!result.Item) return;
+  const record = parseItem(result.Item);
+  if (input.userId ? record.userId !== input.userId : record.orgId !== (input.orgId ?? "default")) {
     return;
   }
-
-  await sql`
-    UPDATE api_keys SET revoked_at = NOW()
-    WHERE id = ${input.id} AND org_id = ${input.orgId ?? "default"}
-  `;
+  await dynamoClient.send(new UpdateItemCommand({
+    TableName: TABLE,
+    Key: { id: { S: input.id } },
+    UpdateExpression: "SET revokedAt = :revokedAt",
+    ExpressionAttributeValues: { ":revokedAt": { S: new Date().toISOString() } },
+  }));
 }
 
 export async function validateApiKey(
   key: string | null,
-  requiredScopes: ApiKeyScope[] = []
+  requiredScopes: ApiKeyScope[] = [],
 ): Promise<ApiKeyPrincipal | null> {
   if (!key) return null;
   if (process.env.SENSOR_API_KEY && key === process.env.SENSOR_API_KEY) {
@@ -200,39 +175,40 @@ export async function validateApiKey(
     };
   }
 
-  const sql = getDb();
-  await ensureApiKeysTable();
-  const rows = await sql`
-    SELECT id, user_id, org_id, scopes
-    FROM api_keys
-    WHERE key_hash = ${hashKey(key)} AND revoked_at IS NULL
-    LIMIT 1
-  `;
-  const row = rows[0];
-  if (!row) return null;
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: TABLE,
+    IndexName: "keyHash-index",
+    KeyConditionExpression: "keyHash = :keyHash",
+    ExpressionAttributeValues: { ":keyHash": { S: hashKey(key) } },
+    Limit: 1,
+  }));
+  const item = result.Items?.[0];
+  if (!item) return null;
 
-  const scopes = parseScopes(row.scopes);
-  const hasScopes = requiredScopes.every((scope) => scopes.includes(scope));
-  if (!hasScopes) return null;
+  const record = parseItem(item);
+  if (record.revokedAt || !requiredScopes.every((scope) => record.scopes.includes(scope))) {
+    return null;
+  }
 
-  await sql`
-    UPDATE api_keys SET last_used_at = NOW()
-    WHERE id = ${String(row.id)}
-  `;
+  await dynamoClient.send(new UpdateItemCommand({
+    TableName: TABLE,
+    Key: { id: { S: record.id } },
+    UpdateExpression: "SET lastUsedAt = :lastUsedAt",
+    ExpressionAttributeValues: { ":lastUsedAt": { S: new Date().toISOString() } },
+  }));
 
   return {
     type: "developer",
-    keyId: String(row.id),
-    userId: String(row.user_id),
-    orgId: String(row.org_id ?? "default"),
-    scopes,
+    keyId: record.id,
+    userId: record.userId,
+    orgId: record.orgId,
+    scopes: record.scopes,
   };
 }
 
 export function extractApiKeyFromHeaders(headers: Headers): string | null {
   const xApiKey = headers.get("x-api-key");
   if (xApiKey) return xApiKey;
-  const auth = headers.get("authorization");
-  if (auth?.startsWith("Bearer ")) return auth.slice(7);
-  return null;
+  const authorization = headers.get("authorization");
+  return authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
 }

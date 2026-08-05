@@ -18,7 +18,7 @@ const NAV_ITEMS = [
   ["API", "/developers#rest-api"],
   ["CLI", "/developers#cli"],
   ["MCP", "/developers#mcp"],
-  ["Docs", "/developers"],
+  ["Docs", "/docs"],
 ] as const;
 
 const STACK_ITEMS: Array<{
@@ -432,7 +432,7 @@ export default function LandingPage() {
                 <span aria-hidden="true">-&gt;</span>
               </Link>
               <Link
-                href="/developers"
+                href="/docs"
                 className="inline-flex h-14 items-center gap-3 rounded-md border border-white/15 bg-bg/20 px-7 text-base font-semibold text-white/80 transition hover:border-primary/60 hover:text-white"
               >
                 Read docs
@@ -581,6 +581,9 @@ export default function LandingPage() {
             </Link>
             <Link href="/developers" className="hover:text-white">
               Developers
+            </Link>
+            <Link href="/docs" className="hover:text-white">
+              Docs
             </Link>
             <Link href="/firmware" className="hover:text-white">
               Firmware

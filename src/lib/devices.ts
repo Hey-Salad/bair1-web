@@ -1,4 +1,14 @@
-import { getDb } from "./db";
+import {
+  DeleteItemCommand,
+  GetItemCommand,
+  PutItemCommand,
+  ScanCommand,
+  UpdateItemCommand,
+  type AttributeValue,
+} from "@aws-sdk/client-dynamodb";
+import { dynamoClient } from "./aws-dynamo";
+
+const TABLE = "bair1-devices";
 
 export type DeviceStatus = "active" | "inactive" | "provisioning";
 
@@ -14,104 +24,114 @@ export interface Device {
   createdAt: string;
 }
 
-async function ensureDevicesTable() {
-  const sql = getDb();
-  await sql`
-    CREATE TABLE IF NOT EXISTS devices (
-      device_id TEXT PRIMARY KEY,
-      name TEXT NOT NULL DEFAULT '',
-      location TEXT NOT NULL DEFAULT '',
-      lat REAL,
-      lng REAL,
-      owner_id TEXT NOT NULL DEFAULT '',
-      org_id TEXT NOT NULL DEFAULT 'default',
-      status TEXT NOT NULL DEFAULT 'active',
-      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `;
+function text(item: Record<string, AttributeValue>, key: string) {
+  return item[key]?.S ?? "";
 }
 
-function parseRow(row: Record<string, unknown>): Device {
+function number(item: Record<string, AttributeValue>, key: string) {
+  const value = item[key]?.N;
+  return value == null ? null : Number(value);
+}
+
+function parseItem(item: Record<string, AttributeValue>): Device {
   return {
-    deviceId: String(row.device_id ?? ""),
-    name: String(row.name ?? ""),
-    location: String(row.location ?? ""),
-    lat: row.lat != null ? Number(row.lat) : null,
-    lng: row.lng != null ? Number(row.lng) : null,
-    ownerId: String(row.owner_id ?? ""),
-    orgId: String(row.org_id ?? "default"),
-    status: (row.status as DeviceStatus) ?? "inactive",
-    createdAt: row.created_at ? new Date(row.created_at as string).toISOString() : "",
+    deviceId: text(item, "deviceId"),
+    name: text(item, "name"),
+    location: text(item, "location"),
+    lat: number(item, "lat"),
+    lng: number(item, "lng"),
+    ownerId: text(item, "ownerId"),
+    orgId: text(item, "orgId") || "default",
+    status: (text(item, "status") as DeviceStatus) || "inactive",
+    createdAt: text(item, "createdAt"),
   };
 }
 
+async function scanDevices(filter?: { expression: string; values: Record<string, AttributeValue> }) {
+  const devices: Device[] = [];
+  let exclusiveStartKey: Record<string, AttributeValue> | undefined;
+  do {
+    const result = await dynamoClient.send(new ScanCommand({
+      TableName: TABLE,
+      ExclusiveStartKey: exclusiveStartKey,
+      ...(filter ? { FilterExpression: filter.expression, ExpressionAttributeValues: filter.values } : {}),
+    }));
+    devices.push(...(result.Items ?? []).map(parseItem));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey);
+  return devices.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 export async function getDevice(deviceId: string): Promise<Device | null> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  const rows = await sql`SELECT * FROM devices WHERE device_id = ${deviceId}`;
-  return rows[0] ? parseRow(rows[0]) : null;
+  const result = await dynamoClient.send(new GetItemCommand({
+    TableName: TABLE,
+    Key: { deviceId: { S: deviceId } },
+  }));
+  return result.Item ? parseItem(result.Item) : null;
 }
 
 export async function createDevice(device: Device): Promise<void> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  await sql`
-    INSERT INTO devices (device_id, name, location, lat, lng, owner_id, org_id, status, created_at)
-    VALUES (${device.deviceId}, ${device.name}, ${device.location}, ${device.lat}, ${device.lng}, ${device.ownerId}, ${device.orgId}, ${device.status}, ${device.createdAt || new Date().toISOString()})
-    ON CONFLICT (device_id) DO UPDATE SET
-      name = EXCLUDED.name,
-      location = EXCLUDED.location,
-      lat = EXCLUDED.lat,
-      lng = EXCLUDED.lng,
-      owner_id = EXCLUDED.owner_id,
-      org_id = EXCLUDED.org_id,
-      status = EXCLUDED.status
-  `;
+  const item: Record<string, AttributeValue> = {
+    deviceId: { S: device.deviceId },
+    name: { S: device.name },
+    location: { S: device.location },
+    ownerId: { S: device.ownerId },
+    orgId: { S: device.orgId },
+    status: { S: device.status },
+    createdAt: { S: device.createdAt || new Date().toISOString() },
+  };
+  if (device.lat != null) item.lat = { N: String(device.lat) };
+  if (device.lng != null) item.lng = { N: String(device.lng) };
+  await dynamoClient.send(new PutItemCommand({ TableName: TABLE, Item: item }));
 }
 
 export async function updateDevice(
   deviceId: string,
-  updates: Partial<Pick<Device, "name" | "location" | "lat" | "lng" | "status" | "ownerId">>
+  updates: Partial<Pick<Device, "name" | "location" | "lat" | "lng" | "status" | "ownerId">>,
 ): Promise<void> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  const current = await getDevice(deviceId);
-  if (!current) return;
-  await sql`
-    UPDATE devices SET
-      name = ${updates.name ?? current.name},
-      location = ${updates.location ?? current.location},
-      lat = ${updates.lat !== undefined ? updates.lat : current.lat},
-      lng = ${updates.lng !== undefined ? updates.lng : current.lng},
-      status = ${updates.status ?? current.status},
-      owner_id = ${updates.ownerId ?? current.ownerId}
-    WHERE device_id = ${deviceId}
-  `;
+  const expressions: string[] = [];
+  const names: Record<string, string> = {};
+  const values: Record<string, AttributeValue> = {};
+  const textFields = ["name", "location", "status", "ownerId"] as const;
+  for (const field of textFields) {
+    const value = updates[field];
+    if (value !== undefined) {
+      const name = `#${field}`;
+      const token = `:${field}`;
+      expressions.push(`${name} = ${token}`);
+      names[name] = field;
+      values[token] = { S: String(value) };
+    }
+  }
+  for (const field of ["lat", "lng"] as const) {
+    const value = updates[field];
+    if (value !== undefined) {
+      expressions.push(`${field} = :${field}`);
+      values[`:${field}`] = value == null ? { NULL: true } : { N: String(value) };
+    }
+  }
+  if (!expressions.length) return;
+  await dynamoClient.send(new UpdateItemCommand({
+    TableName: TABLE,
+    Key: { deviceId: { S: deviceId } },
+    UpdateExpression: `SET ${expressions.join(", ")}`,
+    ...(Object.keys(names).length ? { ExpressionAttributeNames: names } : {}),
+    ExpressionAttributeValues: values,
+  }));
 }
 
 export async function deleteDevice(deviceId: string): Promise<void> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  await sql`DELETE FROM devices WHERE device_id = ${deviceId}`;
+  await dynamoClient.send(new DeleteItemCommand({ TableName: TABLE, Key: { deviceId: { S: deviceId } } }));
 }
 
 export async function getAllDevicesRegistry(): Promise<Device[]> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  const rows = await sql`SELECT * FROM devices ORDER BY created_at DESC`;
-  return rows.map(parseRow);
+  return scanDevices();
 }
 
 export async function getDevicesForUser(userId: string): Promise<Device[]> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  const rows = await sql`SELECT * FROM devices WHERE owner_id = ${userId}`;
-  return rows.map(parseRow);
+  return scanDevices({ expression: "ownerId = :userId", values: { ":userId": { S: userId } } });
 }
 
 export async function getDevicesForOrg(orgId: string): Promise<Device[]> {
-  const sql = getDb();
-  await ensureDevicesTable();
-  const rows = await sql`SELECT * FROM devices WHERE org_id = ${orgId}`;
-  return rows.map(parseRow);
+  return scanDevices({ expression: "orgId = :orgId", values: { ":orgId": { S: orgId } } });
 }

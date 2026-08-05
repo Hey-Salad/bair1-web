@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   CartesianGrid,
   Line,
@@ -174,12 +175,13 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
+      const now = Math.floor(Date.now() / 15_000) * 15_000;
       const params = new URLSearchParams({
         limit: "500",
         pollutant: "pm25",
         references: "true",
-        from: new Date(Date.now() - historyWindowMs).toISOString(),
-        to: new Date().toISOString(),
+        from: new Date(now - historyWindowMs).toISOString(),
+        to: new Date(now).toISOString(),
       });
       const response = await fetch(`/api/public/feeds/${snapshot.slug}?${params.toString()}`, { cache: "no-store" });
       if (!response.ok) return;
@@ -189,7 +191,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
     load().catch(() => {});
     const id = window.setInterval(() => {
       load().catch(() => {});
-    }, 5000);
+    }, 15_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
@@ -282,6 +284,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
             </span>
             <span>{snapshot.location}</span>
             <span>Updated {formatTime(snapshot.updatedAt)}</span>
+            <Link href="/docs" className="hidden transition hover:text-ink md:inline">Docs</Link>
             <button
               type="button"
               onClick={() => navigator.clipboard?.writeText(shareUrl)}

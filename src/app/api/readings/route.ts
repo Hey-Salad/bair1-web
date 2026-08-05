@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
-import { getDb, ensureTable } from "@/lib/db";
+import { getLatestReadings, storeReading } from "@/lib/dynamo";
 import { resolveCellTower } from "@/lib/geolocation";
-import { getDevice, createDevice } from "@/lib/devices";
+import { getDevice, createDevice, updateDevice } from "@/lib/devices";
 
 export async function POST(req: NextRequest) {
   const principal = await validateApiKey(
@@ -50,29 +50,24 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const sql = getDb();
-    await ensureTable();
-
     const existing = await getDevice(deviceId);
     if (principal.type === "developer" && existing && existing.ownerId !== principal.userId) {
       return NextResponse.json({ error: "device not found" }, { status: 404 });
     }
 
-    const inserted = await sql`
-      WITH expired AS (
-        DELETE FROM readings
-        WHERE created_at < NOW() - INTERVAL '14 days'
-      )
-      INSERT INTO readings (device_id, aqi, gas_raw, gas_voltage, air_state, rssi, firmware_version, uptime_ms, sample, transport, raw_payload)
-      SELECT ${deviceId}, ${aqi}, ${gasRaw}, ${gasVoltage}, ${airState}, ${rssi}, ${firmwareVersion}, ${uptimeMs}, ${sample}, ${transport}, ${JSON.stringify(body)}
-      WHERE NOT EXISTS (
-        SELECT 1
-        FROM readings
-        WHERE device_id = ${deviceId}
-          AND created_at > NOW() - INTERVAL '1 minute'
-      )
-      RETURNING id
-    `;
+    const stored = await storeReading({
+      deviceId,
+      aqi,
+      gasRaw,
+      gasVoltage,
+      airState,
+      rssi,
+      firmwareVersion,
+      uptimeMs,
+      sample,
+      transport,
+      rawPayload: body,
+    });
 
     // Auto-register device if not yet known
     if (!existing) {
@@ -94,14 +89,12 @@ export async function POST(req: NextRequest) {
         createdAt: new Date().toISOString(),
       });
     } else if (body.lat != null && body.lng != null) {
-      // Update device location from latest reading
-      const sql2 = getDb();
-      await sql2`UPDATE devices SET lat = ${Number(body.lat)}, lng = ${Number(body.lng)} WHERE device_id = ${deviceId}`;
+      await updateDevice(deviceId, { lat: Number(body.lat), lng: Number(body.lng) });
     }
 
     return NextResponse.json({
       ok: true,
-      stored: inserted.length > 0,
+      stored,
       deviceId,
       aqi,
       pm25,
@@ -116,14 +109,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET() {
   try {
-    const sql = getDb();
-    await ensureTable();
-
-    const rows = await sql`
-      SELECT * FROM readings ORDER BY created_at DESC LIMIT 20
-    `;
-
-    return NextResponse.json({ readings: rows });
+    return NextResponse.json({ readings: await getLatestReadings(20) });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
