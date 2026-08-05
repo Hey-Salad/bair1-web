@@ -18,6 +18,7 @@ import type { PublicFeedSnapshot } from "@/lib/public-feeds";
 import AirInsightCard from "./AirInsightCard";
 import LondonAirMap from "./LondonAirMap";
 import LiveAirChat from "./LiveAirChat";
+import DeviceControlCard from "./DeviceControlCard";
 
 type Props = {
   initialSnapshot: PublicFeedSnapshot;
@@ -171,6 +172,15 @@ function PmTooltip({ active, label, payload }: TooltipProps) {
 export default function PublicFeedClient({ initialSnapshot }: Props) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [activeView, setActiveView] = useState<"live" | "map" | "studio">("live");
+  const [apiKey, setApiKey] = useState<string | null>(null);
+
+  // Load an API key from localStorage (set by the dashboard settings page).
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem("bair1.apiKey");
+      if (stored) setApiKey(stored);
+    } catch { /* ignore */ }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -515,6 +525,12 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
             <div className="mt-8">
               <AirInsightCard slug={snapshot.slug} />
             </div>
+
+            {referenceDeviceId ? (
+              <div className="mt-4">
+                <DeviceControlCard deviceId={referenceDeviceId} apiKey={apiKey} />
+              </div>
+            ) : null}
           </>
         ) : activeView === "map" ? (
           <LondonAirMap

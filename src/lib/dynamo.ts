@@ -3,6 +3,7 @@ import {
   QueryCommand,
   ScanCommand,
   UpdateItemCommand,
+  DeleteItemCommand,
   type AttributeValue,
   type QueryCommandInput,
   type ScanCommandInput,
@@ -234,4 +235,205 @@ export async function updateReadingRawPayload(reading: StoredReading): Promise<v
     UpdateExpression: "SET rawPayload = :rawPayload",
     ExpressionAttributeValues: { ":rawPayload": { S: JSON.stringify(reading.rawPayload) } },
   }));
+}
+
+// ---------- Device command queue ----------
+// Table: bair1-commands. PK: deviceId, SK: commandId (sortable ISO-ish).
+// TTL 1 hour. Each command: {deviceId, commandId, type, payload, status, result, createdAt, expiresAt}.
+
+const COMMANDS_TABLE = "bair1-commands";
+const COMMAND_TTL_SECONDS = 60 * 60;
+
+export type CommandType =
+  | "set_led"
+  | "read_sps30"
+  | "clean_sps30"
+  | "reboot"
+  | "get_state";
+
+export interface Command {
+  deviceId: string;
+  commandId: string;
+  type: CommandType;
+  payload: Record<string, unknown> | null;
+  status: "pending" | "done";
+  result: Record<string, unknown> | null;
+  createdAt: string;
+  expiresAt: number;
+}
+
+function randomId(prefix: string): string {
+  return `${prefix}_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
+}
+
+export async function enqueueCommand(
+  deviceId: string,
+  type: CommandType,
+  payload: Record<string, unknown> | null = null,
+): Promise<Command> {
+  const now = Date.now();
+  const createdAt = new Date(now).toISOString();
+  const commandId = `${now.toString(36)}-${randomId("cmd")}`;
+  const expiresAt = Math.floor(now / 1000) + COMMAND_TTL_SECONDS;
+  const item: Record<string, AttributeValue> = {
+    deviceId: { S: deviceId },
+    commandId: { S: commandId },
+    type: { S: type },
+    status: { S: "pending" },
+    createdAt: { S: createdAt },
+    expiresAt: { N: String(expiresAt) },
+  };
+  if (payload) item.payload = { S: JSON.stringify(payload) };
+
+  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
+  return {
+    deviceId,
+    commandId,
+    type,
+    payload,
+    status: "pending",
+    result: null,
+    createdAt,
+    expiresAt,
+  };
+}
+
+export async function pollCommands(deviceId: string, limit = 10): Promise<Command[]> {
+  const items = await queryAll({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId",
+    ExpressionAttributeValues: { ":deviceId": { S: deviceId } },
+    ScanIndexForward: true,
+    Limit: Math.min(Math.max(limit, 1), 50),
+  }, limit);
+
+  return items
+    .map(parseCommandItem)
+    .filter((cmd): cmd is Command => cmd !== null);
+}
+
+export async function ackCommand(
+  deviceId: string,
+  commandId: string,
+  ok: boolean,
+  result: Record<string, unknown> | null = null,
+): Promise<void> {
+  const updateExpression = "SET #status = :status, result = :result";
+  const names = { "#status": "status" };
+  const values: Record<string, AttributeValue> = {
+    ":status": { S: ok ? "done" : "done" },
+    ":result": { S: JSON.stringify({ ok, ...(result ?? {}) }) },
+  };
+  await dynamoClient.send(new UpdateItemCommand({
+    TableName: COMMANDS_TABLE,
+    Key: {
+      deviceId: { S: deviceId },
+      commandId: { S: commandId },
+    },
+    UpdateExpression: updateExpression,
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+  }));
+}
+
+export async function getCommand(deviceId: string, commandId: string): Promise<Command | null> {
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId AND commandId = :commandId",
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":commandId": { S: commandId },
+    },
+    Limit: 1,
+  }));
+  const item = result.Items?.[0];
+  return item ? parseCommandItem(item) : null;
+}
+
+function parseCommandItem(item: Record<string, AttributeValue>): Command | null {
+  const deviceId = item["deviceId"]?.S;
+  const commandId = item["commandId"]?.S;
+  const type = item["type"]?.S as CommandType | undefined;
+  if (!deviceId || !commandId || !type) return null;
+  let payload: Record<string, unknown> | null = null;
+  const payloadRaw = item["payload"]?.S;
+  if (payloadRaw) {
+    try {
+      const parsed: unknown = JSON.parse(payloadRaw);
+      payload = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    } catch { /* ignore */ }
+  }
+  let result: Record<string, unknown> | null = null;
+  const resultRaw = item["result"]?.S;
+  if (resultRaw) {
+    try {
+      const parsed: unknown = JSON.parse(resultRaw);
+      result = parsed && typeof parsed === "object" ? parsed as Record<string, unknown> : null;
+    } catch { /* ignore */ }
+  }
+  return {
+    deviceId,
+    commandId,
+    type,
+    payload,
+    status: (item["status"]?.S as "pending" | "done") ?? "pending",
+    result,
+    createdAt: item["createdAt"]?.S ?? "",
+    expiresAt: Number(item["expiresAt"]?.N ?? 0),
+  };
+}
+
+// ---------- Device state (lightweight LED + last-seen) ----------
+// Stored in COMMANDS_TABLE under PK=deviceId, SK=`state#latest` so we avoid
+// creating a fourth table. Small, hot, overwritten on each ack/state update.
+
+const STATE_SORT_KEY = "state#latest";
+
+export interface DeviceState {
+  deviceId: string;
+  led: { on: boolean; brightness: number };
+  lastSeenAt: string | null;
+  updatedAt: string;
+}
+
+export async function getDeviceState(deviceId: string): Promise<DeviceState> {
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId AND commandId = :sk",
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":sk": { S: STATE_SORT_KEY },
+    },
+    Limit: 1,
+  }));
+  const item = result.Items?.[0];
+  if (!item) {
+    return { deviceId, led: { on: false, brightness: 0 }, lastSeenAt: null, updatedAt: "" };
+  }
+  return {
+    deviceId,
+    led: {
+      on: item["ledOn"]?.BOOL ?? false,
+      brightness: Number(item["ledBrightness"]?.N ?? 0),
+    },
+    lastSeenAt: item["lastSeenAt"]?.S ?? null,
+    updatedAt: item["updatedAt"]?.S ?? "",
+  };
+}
+
+export async function setDeviceState(
+  deviceId: string,
+  led: { on: boolean; brightness: number },
+  lastSeenAt: string | null = null,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const item: Record<string, AttributeValue> = {
+    deviceId: { S: deviceId },
+    commandId: { S: STATE_SORT_KEY },
+    ledOn: { BOOL: led.on },
+    ledBrightness: { N: String(led.brightness) },
+    updatedAt: { S: now },
+  };
+  if (lastSeenAt) item.lastSeenAt = { S: lastSeenAt };
+  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
 }
