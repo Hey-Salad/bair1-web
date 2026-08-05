@@ -144,6 +144,35 @@ export const PUBLIC_FEEDS: Record<string, PublicFeed> = {
       },
     ],
   },
+  saddlesense01: {
+    slug: "saddlesense01",
+    title: "Saddle Sense 01 — Portable SPS30",
+    location: "Portable / iPhone hotspot",
+    description: "Live PM readings from the ESP32-S3 + Sensirion SPS30 prototype board (battery + WiFi).",
+    referenceLocation: {
+      label: "London (approx.)",
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    devices: [
+      {
+        deviceId: "XIAO-SPS30-S3-8FEE68",
+        label: "Saddle Sense 01",
+        sensor: "Sensirion SPS30 (UART)",
+        color: "#4A8A1A",
+      },
+    ],
+    references: [
+      {
+        id: "defra-uk-air",
+        name: "DEFRA UK-AIR archive",
+        description: "Official UK monitoring archive for PM2.5, PM10, NO2, ozone.",
+        source: "DEFRA UK-AIR",
+        href: "https://uk-air.defra.gov.uk/data/",
+        status: "available",
+      },
+    ],
+  },
 };
 
 function withDevice(reading: Reading, device: PublicFeedDevice): Reading & PublicFeedDevice {
