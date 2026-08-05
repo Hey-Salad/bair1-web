@@ -159,7 +159,7 @@ export const PUBLIC_FEEDS: Record<string, PublicFeed> = {
         deviceId: "XIAO-SPS30-S3-8FEE68",
         label: "Saddle Sense 01",
         sensor: "Sensirion SPS30 (UART)",
-        color: "#4A8A1A",
+        color: "#8C6234",
       },
     ],
     references: [
