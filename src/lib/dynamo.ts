@@ -177,7 +177,7 @@ export async function getReadingsInRange(deviceId: string, from: string, to: str
 export async function storeReading(input: ReadingInput): Promise<boolean> {
   const timestamp = input.timestamp ?? new Date().toISOString();
   const latest = await getLatestReading(input.deviceId);
-  if (latest && new Date(timestamp).getTime() - new Date(latest.timestamp).getTime() < 60_000) {
+  if (latest && new Date(timestamp).getTime() - new Date(latest.timestamp).getTime() < 12_000) {
     return false;
   }
 

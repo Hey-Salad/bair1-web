@@ -191,7 +191,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
     load().catch(() => {});
     const id = window.setInterval(() => {
       load().catch(() => {});
-    }, 15_000);
+    }, 5_000);
     return () => {
       cancelled = true;
       window.clearInterval(id);

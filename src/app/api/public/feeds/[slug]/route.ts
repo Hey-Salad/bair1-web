@@ -39,7 +39,7 @@ export async function GET(
 
     return NextResponse.json(snapshot, {
       headers: {
-        "Cache-Control": "public, max-age=0, s-maxage=15, stale-while-revalidate=45",
+        "Cache-Control": "public, max-age=0, s-maxage=2, stale-while-revalidate=5",
       },
     });
   } catch (err: unknown) {
