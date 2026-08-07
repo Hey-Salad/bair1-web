@@ -19,6 +19,7 @@ import AirInsightCard from "./AirInsightCard";
 import LondonAirMap from "./LondonAirMap";
 import LiveAirChat from "./LiveAirChat";
 import DeviceControlCard from "./DeviceControlCard";
+import MultiSensorPanel from "./MultiSensorPanel";
 
 type Props = {
   initialSnapshot: PublicFeedSnapshot;
@@ -521,6 +522,8 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
                 </article>
               ) : <div className="bg-surface p-4 text-sm text-muted">Waiting for a sensor reading.</div>}
             </section>
+
+            <MultiSensorPanel snapshot={snapshot} />
 
             <div className="mt-8">
               <AirInsightCard slug={snapshot.slug} />

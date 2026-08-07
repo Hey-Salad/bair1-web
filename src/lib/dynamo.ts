@@ -34,9 +34,34 @@ export interface Reading {
   pm10: number | null;
   sensorModel: string | null;
   board: string | null;
+  // Extended sensor fields (Genesis Mini multi-sensor)
+  temperature: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  dhtTemp: number | null;
+  dhtHum: number | null;
+  accelX: number | null;
+  accelY: number | null;
+  accelZ: number | null;
+  gyroX: number | null;
+  gyroY: number | null;
+  gyroZ: number | null;
+  batteryVoltage: number | null;
+  batteryLevel: number | null;
 }
 
-export type ReadingInput = Omit<Reading, "timestamp" | "lat" | "lng" | "locationAccuracy" | "pm1" | "pm25" | "pm4" | "pm10" | "sensorModel" | "board"> & {
+export type ReadingInput = Omit<
+  Reading,
+  | "timestamp"
+  | "lat" | "lng" | "locationAccuracy"
+  | "pm1" | "pm25" | "pm4" | "pm10"
+  | "sensorModel" | "board"
+  | "temperature" | "humidity" | "pressure"
+  | "dhtTemp" | "dhtHum"
+  | "accelX" | "accelY" | "accelZ"
+  | "gyroX" | "gyroY" | "gyroZ"
+  | "batteryVoltage" | "batteryLevel"
+> & {
   rawPayload: Record<string, unknown>;
   timestamp?: string;
 };
@@ -95,6 +120,20 @@ function parseItem(item: Record<string, AttributeValue>): Reading {
     pm10: rawNumber(raw, "pm10"),
     sensorModel: raw.sensorModel ? String(raw.sensorModel) : null,
     board: raw.board ? String(raw.board) : null,
+    // Extended sensor fields (Genesis Mini multi-sensor)
+    temperature: rawNumber(raw, "temperature"),
+    humidity: rawNumber(raw, "humidity"),
+    pressure: rawNumber(raw, "pressure"),
+    dhtTemp: rawNumber(raw, "dhtTemp"),
+    dhtHum: rawNumber(raw, "dhtHum"),
+    accelX: rawNumber(raw, "accelX"),
+    accelY: rawNumber(raw, "accelY"),
+    accelZ: rawNumber(raw, "accelZ"),
+    gyroX: rawNumber(raw, "gyroX"),
+    gyroY: rawNumber(raw, "gyroY"),
+    gyroZ: rawNumber(raw, "gyroZ"),
+    batteryVoltage: rawNumber(raw, "batteryVoltage"),
+    batteryLevel: rawNumber(raw, "batteryLevel"),
   };
 }
 

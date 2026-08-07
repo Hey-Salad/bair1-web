@@ -173,6 +173,36 @@ export const PUBLIC_FEEDS: Record<string, PublicFeed> = {
       },
     ],
   },
+  saddlesense02: {
+    slug: "saddlesense02",
+    title: "Saddle Sense 02 — Genesis Mini Multi-Sensor",
+    location: "Axiometa Genesis Mini (ESP32-S3)",
+    description:
+      "Live multi-sensor readings: PMSA003I (PM1/PM2.5/PM10), BME280 (temp/humidity/pressure), LSM6DS3 (accel/gyro), DHT11, battery. Axiometa Genesis Mini board.",
+    referenceLocation: {
+      label: "London (approx.)",
+      lat: 51.5074,
+      lng: -0.1278,
+    },
+    devices: [
+      {
+        deviceId: "GENESIS-BAIR1-F16E20",
+        label: "Saddle Sense 02",
+        sensor: "PMSA003I + BME280 + LSM6DS3 + DHT11",
+        color: "#4A8A1A",
+      },
+    ],
+    references: [
+      {
+        id: "defra-uk-air",
+        name: "DEFRA UK-AIR archive",
+        description: "Official UK monitoring archive for PM2.5, PM10, NO2, ozone.",
+        source: "DEFRA UK-AIR",
+        href: "https://uk-air.defra.gov.uk/data/",
+        status: "available",
+      },
+    ],
+  },
 };
 
 function withDevice(reading: Reading, device: PublicFeedDevice): Reading & PublicFeedDevice {
