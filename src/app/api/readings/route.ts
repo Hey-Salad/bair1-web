@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
 import { getLatestReadings, storeReading } from "@/lib/dynamo";
-import { resolveCellTower } from "@/lib/geolocation";
+import { resolveCellTower, resolveWifiAccessPoints, type WifiAccessPoint } from "@/lib/geolocation";
 import { getDevice, createDevice, updateDevice } from "@/lib/devices";
 
 export async function POST(req: NextRequest) {
@@ -47,6 +47,20 @@ export async function POST(req: NextRequest) {
         body.lng = loc.lng;
         body.locationAccuracy = loc.accuracy;
         body.locationSource = "cellTower";
+      }
+    }
+
+    // Resolve WiFi access points to lat/lng if present and still no lat/lng
+    if (body.lat == null && body.lng == null) {
+      const aps = body.wifiAccessPoints;
+      if (Array.isArray(aps) && aps.length > 0) {
+        const loc = await resolveWifiAccessPoints(aps as WifiAccessPoint[]);
+        if (loc) {
+          body.lat = loc.lat;
+          body.lng = loc.lng;
+          body.locationAccuracy = loc.accuracy;
+          body.locationSource = "wifiAccessPoints";
+        }
       }
     }
 
