@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import { getCycleInfrastructure } from "@/lib/cycle-infrastructure";
+import { getDocks } from "@/lib/cycle-infrastructure";
 import {
   isR2Configured,
   uploadBikePointStations,
@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { docks, summary } = await getCycleInfrastructure();
+    const docks = await getDocks();
     const takenAt = new Date();
 
     // Compact tuples keep a snapshot at a few KB. Station geography lives in the
@@ -85,8 +85,8 @@ export async function GET(req: NextRequest) {
       takenAt: takenAt.toISOString(),
       snapshotKey,
       stationsKey,
-      stations: summary.stations,
-      eBikes: summary.eBikes,
+      stations: snapshot.s.length,
+      eBikes: snapshot.s.reduce((sum, row) => sum + row[2], 0),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

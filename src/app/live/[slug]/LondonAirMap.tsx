@@ -387,7 +387,12 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
               {cycleError
                 ? cycleError
                 : cycle
-                  ? `${cycle.summary.stations} cycle docks · ${cycle.summary.eBikes} e-bikes (${(cycle.summary.eBikeShare * 100).toFixed(0)}%) · ${cycle.summary.baySites} dockless bays`
+                  ? `${cycle.summary.stations} cycle docks · ${cycle.summary.eBikes} e-bikes (${(cycle.summary.eBikeShare * 100).toFixed(0)}%) · ` +
+                    // The council's bay endpoint is flaky; say so rather than
+                    // implying the City has no bays.
+                    (cycle.summary.baySites > 0
+                      ? `${cycle.summary.baySites} dockless bays`
+                      : "dockless bays unavailable")
                   : "Loading cycle hire…"}
             </p>
           )}
