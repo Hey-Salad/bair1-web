@@ -66,6 +66,64 @@ export async function getFirmwareDownloadUrl(
   );
 }
 
+function pad(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+/**
+ * Store one BikePoint availability snapshot as its own immutable object under
+ * bikepoint/YYYY/MM/DD/HHmmss.json.
+ *
+ * One object per snapshot rather than a daily append-only file: R2 has no append, so
+ * appending would mean read-modify-write on every run, which races with itself and
+ * re-uploads a growing file each time. Returns the object key.
+ */
+export async function uploadBikePointSnapshot(
+  takenAt: Date,
+  payload: unknown,
+): Promise<string> {
+  if (!s3) throw new Error("R2 not configured");
+  const key =
+    `bikepoint/${takenAt.getUTCFullYear()}/${pad(takenAt.getUTCMonth() + 1)}/` +
+    `${pad(takenAt.getUTCDate())}/` +
+    `${pad(takenAt.getUTCHours())}${pad(takenAt.getUTCMinutes())}${pad(takenAt.getUTCSeconds())}.json`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Body: JSON.stringify(payload),
+      ContentType: "application/json",
+    }),
+  );
+  return key;
+}
+
+/**
+ * Overwrite the day's station manifest (id, name, coordinates, dock count).
+ *
+ * Station geography is static, so keeping it out of every snapshot cuts each one to a
+ * few KB. Keyed by day rather than a single latest.json so that stations opening or
+ * closing stays visible in the archive.
+ */
+export async function uploadBikePointStations(
+  takenAt: Date,
+  payload: unknown,
+): Promise<string> {
+  if (!s3) throw new Error("R2 not configured");
+  const key = `bikepoint/stations/${takenAt.toISOString().slice(0, 10)}.json`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: key,
+      Body: JSON.stringify(payload),
+      ContentType: "application/json",
+    }),
+  );
+  return key;
+}
+
 /** Remove a firmware binary from R2 (cleanup, optional). */
 export async function deleteFirmware(r2Key: string): Promise<void> {
   if (!s3) return;

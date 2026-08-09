@@ -37,11 +37,64 @@
   box-sizing: border-box;
 }
 
+/* Motion tokens. The stock CSS easings are too weak to read as intentional; these are
+ * the strong variants. Every timed transition in the app should use one of them so the
+ * whole interface moves with one accent. */
+:root {
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
 body {
   background: var(--color-background);
   color: var(--color-foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------------------
+ * Interaction defaults
+ *
+ * Press feedback fires on :active — that is pointer-down, not release — so the UI
+ * confirms it heard the input before anything else happens. Opt out with
+ * data-no-press on the element.
+ * ------------------------------------------------------------------------- */
+button:not(:disabled):not([data-no-press]),
+[role="tab"]:not([data-no-press]),
+label:has(> input[type="checkbox"]) {
+  transition: transform 140ms var(--ease-out-strong);
+}
+
+button:not(:disabled):not([data-no-press]):active,
+[role="tab"]:not([data-no-press]):active,
+label:has(> input[type="checkbox"]):active {
+  transform: scale(0.97);
+}
+
+/* Keyboard users get a visible ring; pointer users do not. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Gentler, not absent: colour and opacity still communicate, movement stops. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* A 4s loop is roughly 0.25 Hz — the slow oscillation most likely to provoke
+   * motion sickness, so the bear holds still rather than merely animating faster. */
+  .bear-breathe {
+    animation: none !important;
+    transform: none !important;
+  }
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -116,24 +169,90 @@ h3:not([class*="text-"]) {
  * inherits this app's light foreground and renders white-on-white. Style the
  * popup surface explicitly rather than relying on inherited colours.
  * ------------------------------------------------------------------------- */
-.mapboxgl-popup-content {
+/* Selectors here are deliberately one class deeper than they look like they need to
+ * be. mapbox-gl.css is imported from a client component, so it lands *after* this
+ * file: at equal specificity mapbox wins, which is why an earlier single-class
+ * `.mapboxgl-popup-content` lost `background` (white card) while keeping `color`
+ * (near-white ink) and rendered white-on-white. `.mapboxgl-popup` + child = 0,2,0
+ * beats mapbox's 0,1,0. The tip needs 0,3,0 to beat its `.mapboxgl-popup-anchor-*
+ * .mapboxgl-popup-tip` rules. Do not simplify these selectors. */
+.mapboxgl-popup .mapboxgl-popup-content {
   background: var(--color-surface);
   color: var(--color-ink);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 7px 10px;
-  box-shadow: 0 6px 20px -8px rgb(0 0 0 / 0.55);
-  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  border-radius: 10px;
+  padding: 9px 11px;
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.7);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  line-height: 1.45;
   max-width: 260px;
 }
-.mapboxgl-popup-tip {
-  border-top-color: var(--color-surface);
+
+/* Popup internals: hierarchy from weight, not size, and tabular figures so numbers
+ * do not shift width as the feed updates. */
+.mapboxgl-popup .popup-title {
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.mapboxgl-popup .popup-detail {
+  margin-top: 3px;
+  /* --color-muted alone lands near 5:1 on the popup surface. That passes AA, but this
+   * is 12px numeric data read against a moving map, so lift it past AAA (~7:1) while
+   * staying clearly secondary to the title. */
+  color: color-mix(in oklab, var(--color-muted) 65%, var(--color-ink));
+  font-variant-numeric: tabular-nums;
+}
+
+.mapboxgl-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-tip,
+.mapboxgl-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-tip,
+.mapboxgl-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-tip {
   border-bottom-color: var(--color-surface);
-  border-left-color: var(--color-surface);
+}
+.mapboxgl-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-tip,
+.mapboxgl-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-tip,
+.mapboxgl-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-tip {
+  border-top-color: var(--color-surface);
+}
+.mapboxgl-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-tip {
   border-right-color: var(--color-surface);
 }
-.mapboxgl-popup-close-button { color: var(--color-muted); }
-.mapboxgl-popup-close-button:hover { background: transparent; color: var(--color-ink); }
+.mapboxgl-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-tip {
+  border-left-color: var(--color-surface);
+}
+
+.mapboxgl-popup .mapboxgl-popup-close-button {
+  color: var(--color-muted);
+  transition: color 120ms var(--ease-out-strong);
+}
+.mapboxgl-popup .mapboxgl-popup-close-button:hover {
+  background: transparent;
+  color: var(--color-ink);
+}
+
+/* Scale in from the anchor, not the centre, so the popup reads as belonging to the
+ * pin it came from. Mapbox owns `transform` on `.mapboxgl-popup` for positioning, so
+ * this animates the inner content instead — never the positioned wrapper. */
+@media (prefers-reduced-motion: no-preference) {
+  .mapboxgl-popup .mapboxgl-popup-content {
+    animation: popup-in 160ms var(--ease-out-strong) both;
+  }
+  .mapboxgl-popup.mapboxgl-popup-anchor-top .mapboxgl-popup-content { transform-origin: top center; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-top-left .mapboxgl-popup-content { transform-origin: top left; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-top-right .mapboxgl-popup-content { transform-origin: top right; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-bottom .mapboxgl-popup-content { transform-origin: bottom center; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-bottom-left .mapboxgl-popup-content { transform-origin: bottom left; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-bottom-right .mapboxgl-popup-content { transform-origin: bottom right; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-left .mapboxgl-popup-content { transform-origin: left center; }
+  .mapboxgl-popup.mapboxgl-popup-anchor-right .mapboxgl-popup-content { transform-origin: right center; }
+}
+
+/* Starts at 0.96, never 0 — nothing in the physical world appears from nothing. */
+@keyframes popup-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* The scale bar and attribution inherit the same problem. */
 .mapboxgl-ctrl-scale {
   background: color-mix(in srgb, var(--color-surface) 82%, transparent);
@@ -142,3 +261,27 @@ h3:not([class*="text-"]) {
 }
 .mapboxgl-ctrl-attrib.mapboxgl-compact { background: color-mix(in srgb, var(--color-surface) 88%, transparent); }
 .mapboxgl-ctrl-attrib a { color: var(--color-muted); }
+
+/* Zoom controls ship as a bright white block, which reads as a hole punched in a dark
+ * UI. Make them part of the surface, and give the icons enough contrast to survive. */
+/* `.mapboxgl-ctrl-group` alone loses to mapbox's own `background:#fff` (equal
+ * specificity, loaded later), which leaves a white block with white-inverted icons on
+ * it — invisible. Both classes on the same element gets us to 0,2,0. */
+.mapboxgl-ctrl.mapboxgl-ctrl-group {
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  overflow: hidden;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 14px -6px rgb(0 0 0 / 0.6);
+}
+.mapboxgl-ctrl.mapboxgl-ctrl-group button + button {
+  border-top: 1px solid var(--color-border);
+}
+/* Mapbox's icons are dark #333 SVGs; inverting them reads as light-on-dark here. */
+.mapboxgl-ctrl.mapboxgl-ctrl-group button .mapboxgl-ctrl-icon {
+  filter: invert(1) brightness(1.4);
+}
+.mapboxgl-ctrl.mapboxgl-ctrl-group button:not(:disabled):hover {
+  background-color: color-mix(in srgb, var(--color-ink) 12%, transparent);
+}

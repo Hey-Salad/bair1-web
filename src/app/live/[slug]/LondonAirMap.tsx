@@ -4,6 +4,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { PublicFeedReferenceStation } from "@/lib/public-feeds";
+import {
+  CITY_ATTRIBUTION,
+  TFL_ATTRIBUTION,
+  type CycleInfrastructure,
+} from "@/lib/cycle-infrastructure";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? "";
 
@@ -24,6 +29,8 @@ type Props = {
 type MarkerEntry = {
   marker: mapboxgl.Marker;
   element: HTMLButtonElement;
+  /** The coloured circle inside the (larger, transparent) hit area. */
+  dot: HTMLSpanElement;
 };
 
 function formatIndex(value: number | null) {
@@ -42,6 +49,19 @@ function formatTime(value: string | null) {
   });
 }
 
+/** Violet and orange, kept clear of the green/amber/red particulate ramp. */
+const DOCK_COLOR = "#a78bfa";
+const BAY_COLOR = "#f97316";
+
+/**
+ * mapbox-gl v3 types the queried feature as `GeoJSONFeature`, which does not expose
+ * `properties`, so read it through a narrow cast rather than widening the handler.
+ */
+function featureProperties(feature: unknown) {
+  return (feature as { properties?: Record<string, string | number | null> } | undefined)
+    ?.properties;
+}
+
 function stationColor(station: PublicFeedReferenceStation) {
   const index = Math.max(station.pm25Index ?? 0, station.pm10Index ?? 0);
   if (index >= 7) return "#ff3b30";
@@ -57,6 +77,10 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
   const bair1PointRef = useRef(bair1Point);
   const [mapReady, setMapReady] = useState(false);
   const [selectedId, setSelectedId] = useState(bair1Point.id);
+  const [showCycle, setShowCycle] = useState(false);
+  const [cycle, setCycle] = useState<CycleInfrastructure | null>(null);
+  const [cycleError, setCycleError] = useState<string | null>(null);
+  const cycleLayersAdded = useRef(false);
   const stationSignature = stations
     .map((station) => `${station.id}:${station.timestamp}:${station.pm25Index}:${station.pm10Index}`)
     .join("|");
@@ -110,8 +134,126 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
       markers.clear();
       map.remove();
       mapRef.current = null;
+      // The layers died with the map; allow them to be re-added to the next one.
+      cycleLayersAdded.current = false;
     };
   }, []);
+
+  // Opt-in: BikePoint is a ~2.9 MB upstream feed, so it is only fetched the first
+  // time the layer is switched on rather than on every map load.
+  useEffect(() => {
+    if (!showCycle || cycle) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch("/api/cycle-infrastructure");
+        if (!res.ok) throw new Error(`Cycle layer unavailable (${res.status})`);
+        const data = (await res.json()) as CycleInfrastructure;
+        if (!cancelled) setCycle(data);
+      } catch (error) {
+        if (!cancelled) {
+          setCycleError(error instanceof Error ? error.message : "Cycle layer failed to load");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cycle, showCycle]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+
+    if (cycle && !cycleLayersAdded.current) {
+      map.addSource("cycle-bays", { type: "geojson", data: cycle.bays });
+      map.addLayer({
+        id: "cycle-bays-fill",
+        type: "fill",
+        source: "cycle-bays",
+        paint: { "fill-color": BAY_COLOR, "fill-opacity": 0.45 },
+      });
+      map.addLayer({
+        id: "cycle-bays-outline",
+        type: "line",
+        source: "cycle-bays",
+        paint: { "line-color": BAY_COLOR, "line-width": 1.5 },
+      });
+
+      map.addSource("cycle-docks", { type: "geojson", data: cycle.docks });
+      map.addLayer({
+        id: "cycle-docks",
+        type: "circle",
+        source: "cycle-docks",
+        paint: {
+          // Radius follows zoom so all 799 stations stay legible at the default
+          // London-wide view; e-bike share is carried by colour instead.
+          "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 2, 11, 3.5, 13, 6, 16, 11],
+          "circle-color": [
+            "interpolate",
+            ["linear"],
+            ["get", "eBikeShare"],
+            0,
+            "#475569",
+            0.5,
+            DOCK_COLOR,
+            1,
+            "#7c3aed",
+          ],
+          "circle-stroke-width": 1,
+          "circle-stroke-color": "rgba(248, 250, 252, 0.85)",
+          "circle-opacity": 0.9,
+        },
+      });
+
+      const popup = new mapboxgl.Popup({ closeButton: false, offset: 12 });
+
+      map.on("click", "cycle-docks", (event) => {
+        const props = featureProperties(event.features?.[0]);
+        if (!props) return;
+        popup
+          .setLngLat(event.lngLat)
+          .setHTML(
+            `<div class="popup-title">${props.name}</div>` +
+              `<div class="popup-detail">${props.eBikes} e-bikes · ${props.standardBikes} standard</div>` +
+              `<div class="popup-detail">${props.emptyDocks} empty of ${props.docks} docks</div>`,
+          )
+          .addTo(map);
+      });
+
+      map.on("click", "cycle-bays-fill", (event) => {
+        const props = featureProperties(event.features?.[0]);
+        if (!props) return;
+        popup
+          .setLngLat(event.lngLat)
+          .setHTML(
+            `<div class="popup-title">${props.STREET_NAME ?? "Dockless bay"}</div>` +
+              `<div class="popup-detail">${props.NUMBER_OF_BAYS ?? "?"} bays · City of London</div>`,
+          )
+          .addTo(map);
+      });
+
+      for (const id of ["cycle-docks", "cycle-bays-fill"]) {
+        map.on("mouseenter", id, () => {
+          map.getCanvas().style.cursor = "pointer";
+        });
+        map.on("mouseleave", id, () => {
+          map.getCanvas().style.cursor = "";
+        });
+      }
+
+      cycleLayersAdded.current = true;
+    }
+
+    if (!cycleLayersAdded.current) return;
+
+    const visibility = showCycle ? "visible" : "none";
+    for (const id of ["cycle-bays-fill", "cycle-bays-outline", "cycle-docks"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visibility);
+    }
+  }, [cycle, mapReady, showCycle]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -128,29 +270,47 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
       color: string,
       isBair1 = false,
     ) => {
+      // The button is a transparent hit area with 6px of padding around the visible
+      // dot, taking an 18px pin to a 30px target (and Bair1's to 42px) without
+      // changing how it looks. An 18px target is well under the ~44px touch minimum,
+      // and these pins sit close together on a phone.
       const element = document.createElement("button");
       element.type = "button";
       element.setAttribute("aria-label", label);
       element.title = label;
       element.style.cssText = `
+        padding: 6px;
+        border: none;
+        background: none;
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        line-height: 0;
+      `;
+
+      const dot = document.createElement("span");
+      dot.style.cssText = `
         width: ${isBair1 ? 30 : 18}px;
         height: ${isBair1 ? 30 : 18}px;
         border: ${isBair1 ? 3 : 2}px solid #f8fafc;
         border-radius: 999px;
         background: ${color};
         color: #000;
-        cursor: pointer;
+        display: grid;
+        place-items: center;
         font: 700 9px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
         box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
-        transition: box-shadow 140ms ease;
+        transition: box-shadow 140ms var(--ease-out-strong);
       `;
-      element.textContent = isBair1 ? "B1" : "";
+      dot.textContent = isBair1 ? "B1" : "";
+      element.appendChild(dot);
+
       element.addEventListener("click", () => {
         setSelectedId(id);
         map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), 12), duration: 700 });
       });
       const marker = new mapboxgl.Marker({ element }).setLngLat([lng, lat]).addTo(map);
-      markersRef.current.set(id, { marker, element });
+      markersRef.current.set(id, { marker, element, dot });
     };
 
     for (const station of stationsRef.current) {
@@ -173,9 +333,10 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
   }, [bair1LocationSignature, mapReady, stationSignature]);
 
   useEffect(() => {
-    markersRef.current.forEach(({ element }, id) => {
+    markersRef.current.forEach(({ element, dot }, id) => {
       const selected = id === selectedId;
-      element.style.boxShadow = selected
+      // The ring belongs on the dot, not on the padded hit area.
+      dot.style.boxShadow = selected
         ? "0 0 0 3px #c6ff4a, 0 0 0 5px rgba(0, 0, 0, 0.7)"
         : "0 0 0 2px rgba(0, 0, 0, 0.55)";
       element.style.zIndex = selected ? "2" : "1";
@@ -191,11 +352,21 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
             Compare the indoor Bair1 feed with outdoor LAQN stations across London.
           </p>
         </div>
-        <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#60a5fa]" />Bair1</span>
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#00e676]" />Low</span>
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#ffb800]" />Moderate</span>
           <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-[#ff3b30]" />High</span>
+          <label className="inline-flex cursor-pointer items-center gap-2 border-l border-border pl-4">
+            <input
+              type="checkbox"
+              checked={showCycle}
+              onChange={(event) => setShowCycle(event.target.checked)}
+              className="accent-[#a78bfa]"
+            />
+            <i className="h-2.5 w-2.5 rounded-full bg-[#a78bfa]" />
+            Cycle hire
+          </label>
         </div>
       </div>
 
@@ -211,6 +382,15 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
         <div className="p-4 text-muted">
           <p className="font-medium text-ink">Network now</p>
           <p className="mt-1.5 leading-5">{stations.length} stations · {stationCounts.low} low · {stationCounts.moderate} moderate · {stationCounts.high} high</p>
+          {showCycle && (
+            <p className="mt-1.5 leading-5">
+              {cycleError
+                ? cycleError
+                : cycle
+                  ? `${cycle.summary.stations} cycle docks · ${cycle.summary.eBikes} e-bikes (${(cycle.summary.eBikeShare * 100).toFixed(0)}%) · ${cycle.summary.baySites} dockless bays`
+                  : "Loading cycle hire…"}
+            </p>
+          )}
         </div>
       </div>
 
@@ -272,6 +452,13 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
           )}
         </aside>
       </div>
+
+      {/* TfL's licence requires these notices wherever the data is displayed. */}
+      {showCycle && (
+        <p className="border-t border-border p-4 text-[11px] leading-5 text-muted">
+          {TFL_ATTRIBUTION} {CITY_ATTRIBUTION}
+        </p>
+      )}
     </section>
   );
 }
