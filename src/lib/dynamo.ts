@@ -11,7 +11,11 @@ import {
 import { dynamoClient } from "./aws-dynamo";
 
 const TABLE = "bair1-readings";
-const RETENTION_SECONDS = 14 * 24 * 60 * 60;
+// Readings carry a DynamoDB TTL. Raising this only affects rows written from
+// here on — anything already past the old 14-day mark has been deleted and is
+// not recoverable. Keep in step with RETENTION_DAYS in time-range.ts, which is
+// what stops the UI offering a window the data cannot fill.
+const RETENTION_SECONDS = 90 * 24 * 60 * 60;
 
 export interface Reading {
   deviceId: string;
@@ -48,6 +52,11 @@ export interface Reading {
   gyroZ: number | null;
   batteryVoltage: number | null;
   batteryLevel: number | null;
+  // Ride tagging (Genesis Mini firmware >= v2.2). Older readings have nulls;
+  // rides.ts falls back to deriving motion from accelX/Y/Z in that case.
+  rideId: string | null;
+  riding: boolean | null;
+  motionStdev: number | null;
 }
 
 export type ReadingInput = Omit<
@@ -61,6 +70,7 @@ export type ReadingInput = Omit<
   | "accelX" | "accelY" | "accelZ"
   | "gyroX" | "gyroY" | "gyroZ"
   | "batteryVoltage" | "batteryLevel"
+  | "rideId" | "riding" | "motionStdev"
 > & {
   rawPayload: Record<string, unknown>;
   timestamp?: string;
@@ -134,6 +144,9 @@ function parseItem(item: Record<string, AttributeValue>): Reading {
     gyroZ: rawNumber(raw, "gyroZ"),
     batteryVoltage: rawNumber(raw, "batteryVoltage"),
     batteryLevel: rawNumber(raw, "batteryLevel"),
+    rideId: raw.rideId ? String(raw.rideId) : null,
+    riding: raw.riding == null ? null : Boolean(raw.riding),
+    motionStdev: rawNumber(raw, "motionStdev"),
   };
 }
 
@@ -436,6 +449,55 @@ function parseCommandItem(item: Record<string, AttributeValue>): Command | null 
 // creating a fourth table. Small, hot, overwritten on each ack/state update.
 
 const STATE_SORT_KEY = "state#latest";
+const HIDDEN_PREFIX = "hidden#";
+
+/* ---------------------------------------------------------------------------
+ * Hidden journeys
+ *
+ * Journeys are derived from readings, so there is nothing to delete — hiding
+ * has to be recorded separately. These live in the commands table alongside
+ * `state#latest`: same key shape, and rows written without `expiresAt` are
+ * never touched by that table's TTL, so a hidden journey stays hidden.
+ * ------------------------------------------------------------------------- */
+
+export async function listHiddenRideIds(deviceId: string): Promise<string[]> {
+  const res = await dynamoClient.send(
+    new QueryCommand({
+      TableName: COMMANDS_TABLE,
+      KeyConditionExpression: "deviceId = :d AND begins_with(commandId, :p)",
+      ExpressionAttributeValues: {
+        ":d": { S: deviceId },
+        ":p": { S: HIDDEN_PREFIX },
+      },
+    }),
+  );
+  return (res.Items ?? [])
+    .map((i) => i.commandId?.S ?? "")
+    .filter(Boolean)
+    .map((k) => k.slice(HIDDEN_PREFIX.length));
+}
+
+export async function setRideHidden(
+  deviceId: string,
+  rideId: string,
+  hidden: boolean,
+): Promise<void> {
+  const Key = {
+    deviceId: { S: deviceId },
+    commandId: { S: `${HIDDEN_PREFIX}${rideId}` },
+  };
+  if (!hidden) {
+    await dynamoClient.send(new DeleteItemCommand({ TableName: COMMANDS_TABLE, Key }));
+    return;
+  }
+  await dynamoClient.send(
+    new PutItemCommand({
+      TableName: COMMANDS_TABLE,
+      // Deliberately no expiresAt: this must outlive the command TTL.
+      Item: { ...Key, rideId: { S: rideId }, hiddenAt: { S: new Date().toISOString() } },
+    }),
+  );
+}
 
 export interface DeviceState {
   deviceId: string;

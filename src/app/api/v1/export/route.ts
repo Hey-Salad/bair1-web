@@ -3,6 +3,7 @@ import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
 import { getDevice, getDevicesForUser } from "@/lib/devices";
 import { getReadings, getReadingsInRange, Reading } from "@/lib/dynamo";
 import { getAllDevices } from "@/lib/dynamo";
+import { rangeFromSearchParams } from "@/lib/time-range";
 
 export const dynamic = "force-dynamic";
 
@@ -93,19 +94,22 @@ export async function GET(req: NextRequest) {
     }
 
     // Gather readings
+    // ?range=24h|7d|30d|90d is shorthand; an explicit from/to still wins, so
+    // existing export integrations are untouched.
+    const hasWindow = url.searchParams.has("range") || (from != null && to != null);
+    const window = hasWindow ? rangeFromSearchParams(url.searchParams) : null;
+    if (hasWindow && !window) {
+      return NextResponse.json(
+        { error: "Invalid date format. Use ISO 8601." },
+        { status: 400 }
+      );
+    }
+
     let allReadings: Reading[] = [];
     for (const deviceId of deviceIds) {
       let readings: Reading[];
-      if (from && to) {
-        const fromDate = new Date(from);
-        const toDate = new Date(to);
-        if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
-          return NextResponse.json(
-            { error: "Invalid date format. Use ISO 8601." },
-            { status: 400 }
-          );
-        }
-        readings = await getReadingsInRange(deviceId, from, to);
+      if (window) {
+        readings = await getReadingsInRange(deviceId, window.from, window.to);
       } else {
         readings = await getReadings(deviceId, limit);
       }

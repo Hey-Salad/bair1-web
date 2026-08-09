@@ -23,6 +23,12 @@ import MultiSensorPanel from "./MultiSensorPanel";
 
 type Props = {
   initialSnapshot: PublicFeedSnapshot;
+  /** Window the page was rendered for. The client refetch must honour this,
+   *  or the 5-second poll silently replaces the chosen range with its own. */
+  windowMs?: number;
+  /** Only the live view should poll; a 30-day chart refetching every 5 s is
+   *  pointless load and makes the page feel like it is flickering. */
+  live?: boolean;
 };
 
 function formatPm(value: number | null) {
@@ -64,7 +70,17 @@ const pmMetricStyles: Record<PmMetric, { dash?: string; width: number }> = {
 const pmMetrics = Object.keys(pmMetricLabels) as PmMetric[];
 const referenceColor = "#f8fafc";
 const forecastColor = "#c6ff4a";
-const historyWindowMs = 30 * 60 * 1000;
+const DEFAULT_HISTORY_MS = 30 * 60 * 1000;
+
+/** Human label for the measured window, so the caption matches the range
+ *  actually being shown instead of always claiming 30 minutes. */
+function windowLabel(ms: number): string {
+  const min = Math.round(ms / 60_000);
+  if (min < 60) return `${min} minutes`;
+  const hrs = Math.round(min / 60);
+  if (hrs < 48) return `${hrs} hour${hrs === 1 ? "" : "s"}`;
+  return `${Math.round(hrs / 24)} days`;
+}
 const chartBucketMs = 15 * 1000;
 const forecastStepMs = 5 * 60 * 1000;
 const forecastHorizonMs = 30 * 60 * 1000;
@@ -170,7 +186,11 @@ function PmTooltip({ active, label, payload }: TooltipProps) {
   );
 }
 
-export default function PublicFeedClient({ initialSnapshot }: Props) {
+export default function PublicFeedClient({
+  initialSnapshot,
+  windowMs = DEFAULT_HISTORY_MS,
+  live = true,
+}: Props) {
   const [snapshot, setSnapshot] = useState(initialSnapshot);
   const [activeView, setActiveView] = useState<"live" | "map" | "studio">("live");
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -188,10 +208,10 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
     const load = async () => {
       const now = Math.floor(Date.now() / 15_000) * 15_000;
       const params = new URLSearchParams({
-        limit: "500",
+        limit: live ? "500" : "5000",
         pollutant: "pm25",
         references: "true",
-        from: new Date(now - historyWindowMs).toISOString(),
+        from: new Date(now - windowMs).toISOString(),
         to: new Date(now).toISOString(),
       });
       const response = await fetch(`/api/public/feeds/${snapshot.slug}?${params.toString()}`, { cache: "no-store" });
@@ -200,6 +220,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
       if (!cancelled) setSnapshot(next);
     };
     load().catch(() => {});
+    if (!live) return () => { cancelled = true; };
     const id = window.setInterval(() => {
       load().catch(() => {});
     }, 5_000);
@@ -207,7 +228,9 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [snapshot.slug]);
+    // snapshot.slug is stable for the page; windowMs/live come from the URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshot.slug, windowMs, live]);
 
   const referenceDeviceId = snapshot.devices[0]?.deviceId;
   const modelSeries = useMemo(
@@ -346,7 +369,7 @@ export default function PublicFeedClient({ initialSnapshot }: Props) {
           <div className="flex flex-col gap-3 border-b border-border p-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
               <h2 className="text-lg font-semibold">PM history and forecast</h2>
-              <p className="mt-1 text-xs text-muted">30 minutes measured · 30 minutes predicted</p>
+              <p className="mt-1 text-xs text-muted">{windowLabel(windowMs)} measured{live ? " · 30 minutes predicted" : ""}</p>
             </div>
             <div className="grid grid-cols-1 gap-2 text-xs text-muted sm:flex sm:flex-wrap sm:gap-3 sm:text-sm">
               {snapshot.devices.map((device) => (

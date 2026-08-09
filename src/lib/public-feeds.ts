@@ -1,4 +1,5 @@
 import { getReadings, getReadingsInRange, type Reading } from "./dynamo";
+import { detectRides, type Ride, type RidePoint } from "./rides";
 
 export type PublicFeedDevice = {
   deviceId: string;
@@ -60,7 +61,14 @@ export type PublicFeed = {
   references: PublicFeedReferenceDataset[];
 };
 
+/** A ride as published on an open feed: summary plus the drawn track, without
+ *  the per-reading detail or the rejected-fix diagnostics. */
+export type PublicFeedRide = Omit<Ride, "points" | "rejectedFixes"> & {
+  fuzzMetres: number;
+};
+
 export type PublicFeedSnapshot = PublicFeed & {
+  rides: PublicFeedRide[];
   latest: Array<Reading & PublicFeedDevice>;
   readings: Array<Reading & PublicFeedDevice>;
   referenceReadings: PublicFeedReferenceReading[];
@@ -76,7 +84,74 @@ export type PublicFeedFilters = {
   devices: string[];
   pollutant: "pm25" | "pm10" | "pm1" | "aqi";
   includeReferences: boolean;
+  /** Detect and publish rides for the window. Off by default: it costs an
+   *  extra read of the full window rather than just the latest `limit`. */
+  includeRides: boolean;
+  /** Metres to blur ride start/end by. 0 publishes exact endpoints. */
+  fuzzMetres: number;
 };
+
+/** Snap onto a grid so repeated fetches can't be averaged back to the true
+ *  point, the way re-rolled random jitter can. Mirrors shares.ts. */
+function snapToGrid(lat: number, lng: number, metres: number) {
+  const latStep = metres / 111_320;
+  const lngStep = metres / (111_320 * Math.cos((lat * Math.PI) / 180) || 1);
+  return { lat: Math.round(lat / latStep) * latStep, lng: Math.round(lng / lngStep) * lngStep };
+}
+
+function metresBetween(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const R = 6_371_000;
+  const rad = (d: number) => (d * Math.PI) / 180;
+  const dLat = rad(b.lat - a.lat), dLng = rad(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(rad(a.lat)) * Math.cos(rad(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+
+/** Blur every fix within `fuzzMetres` of either end — blurring only the first
+ *  and last would leak the origin via the second fix a minute later. */
+function blurTrack(track: RidePoint[], fuzzMetres: number): RidePoint[] {
+  if (fuzzMetres <= 0) return track;
+  const fixes = track.filter(
+    (p): p is RidePoint & { lat: number; lng: number } => p.lat != null && p.lng != null,
+  );
+  if (!fixes.length) return track;
+  const first = fixes[0], last = fixes[fixes.length - 1];
+  return track.map((p) => {
+    if (p.lat == null || p.lng == null) return p;
+    const near =
+      metresBetween({ lat: p.lat, lng: p.lng }, first) < fuzzMetres ||
+      metresBetween({ lat: p.lat, lng: p.lng }, last) < fuzzMetres;
+    if (!near) return p;
+    const snapped = snapToGrid(p.lat, p.lng, fuzzMetres);
+    return { ...p, ...snapped, locationAccuracy: Math.max(p.locationAccuracy ?? 0, fuzzMetres) };
+  });
+}
+
+async function getFeedRides(
+  feed: PublicFeed,
+  filters: PublicFeedFilters,
+): Promise<PublicFeedRide[]> {
+  const from = filters.from;
+  const to = filters.to;
+  const out: PublicFeedRide[] = [];
+  for (const device of feed.devices) {
+    if (!filters.devices.includes(device.deviceId)) continue;
+    try {
+      const readings =
+        from && to
+          ? await getReadingsInRange(device.deviceId, from, to)
+          : await getReadings(device.deviceId, 2000);
+      for (const ride of detectRides(device.deviceId, readings)) {
+        const { points: _points, rejectedFixes: _rejected, ...rest } = ride;
+        void _points; void _rejected;
+        out.push({ ...rest, track: blurTrack(ride.track, filters.fuzzMetres), fuzzMetres: filters.fuzzMetres });
+      }
+    } catch {
+      // A device that fails to read shouldn't empty the whole feed.
+    }
+  }
+  return out.sort((a, b) => +new Date(b.start) - +new Date(a.start));
+}
 
 export const PUBLIC_FEEDS: Record<string, PublicFeed> = {
   kitchen: {
@@ -298,7 +373,7 @@ async function getSomersetHouseReference(): Promise<PublicFeedReferenceReading[]
   }
 }
 
-async function getLondonReferenceStations(): Promise<PublicFeedReferenceStation[]> {
+export async function getLondonReferenceStations(): Promise<PublicFeedReferenceStation[]> {
   try {
     const response = await fetch(
       "https://api.erg.ic.ac.uk/AirQuality/Hourly/MonitoringIndex/GroupName=London/Json",
@@ -372,6 +447,8 @@ export async function getPublicFeedSnapshot(
           devices: feed.devices.map((device) => device.deviceId),
           pollutant: "pm25",
           includeReferences: false,
+          includeRides: false,
+          fuzzMetres: 500,
         }
       : {
           limit: options.limit ?? 120,
@@ -380,6 +457,8 @@ export async function getPublicFeedSnapshot(
           devices: options.devices?.length ? options.devices : feed.devices.map((device) => device.deviceId),
           pollutant: options.pollutant ?? "pm25",
           includeReferences: options.includeReferences ?? true,
+          includeRides: options.includeRides ?? false,
+          fuzzMetres: options.fuzzMetres ?? 500,
         };
 
   const selectedDevices = feed.devices.filter((device) => filters.devices.includes(device.deviceId));
@@ -417,12 +496,15 @@ export async function getPublicFeedSnapshot(
     ? await Promise.all([getSomersetHouseReference(), getLondonReferenceStations()])
     : [[], []];
 
+  const rides = filters.includeRides ? await getFeedRides(feed, filters) : [];
+
   return {
     ...feed,
     referenceLocation: filters.includeReferences ? feed.referenceLocation : { label: "", lat: 0, lng: 0 },
     references: filters.includeReferences ? feed.references : [],
     latest,
     readings,
+    rides,
     referenceReadings,
     referenceStations,
     updatedAt: latest[0]?.timestamp ?? new Date().toISOString(),

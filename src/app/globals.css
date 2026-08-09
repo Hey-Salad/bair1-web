@@ -108,3 +108,37 @@ h3:not([class*="text-"]) {
 .prose-cap {
   max-width: 65ch;
 }
+
+/* ---------------------------------------------------------------------------
+ * Mapbox popups
+ *
+ * Mapbox ships a white popup with no colour set on its content, so the text
+ * inherits this app's light foreground and renders white-on-white. Style the
+ * popup surface explicitly rather than relying on inherited colours.
+ * ------------------------------------------------------------------------- */
+.mapboxgl-popup-content {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 7px 10px;
+  box-shadow: 0 6px 20px -8px rgb(0 0 0 / 0.55);
+  font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  max-width: 260px;
+}
+.mapboxgl-popup-tip {
+  border-top-color: var(--color-surface);
+  border-bottom-color: var(--color-surface);
+  border-left-color: var(--color-surface);
+  border-right-color: var(--color-surface);
+}
+.mapboxgl-popup-close-button { color: var(--color-muted); }
+.mapboxgl-popup-close-button:hover { background: transparent; color: var(--color-ink); }
+/* The scale bar and attribution inherit the same problem. */
+.mapboxgl-ctrl-scale {
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  color: var(--color-ink);
+  border-color: var(--color-border);
+}
+.mapboxgl-ctrl-attrib.mapboxgl-compact { background: color-mix(in srgb, var(--color-surface) 88%, transparent); }
+.mapboxgl-ctrl-attrib a { color: var(--color-muted); }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { extractApiKeyFromHeaders, validateApiKeyOrSession } from "@/lib/api-keys";
 import { getDevice } from "@/lib/devices";
 import { getReadings, getReadingsInRange } from "@/lib/dynamo";
+import { detectRides, toSummary } from "@/lib/rides";
 import { rangeFromSearchParams } from "@/lib/time-range";
 
 export const dynamic = "force-dynamic";
@@ -32,27 +33,42 @@ export async function GET(
     }
 
     const url = new URL(req.url);
-    const limitParam = url.searchParams.get("limit");
-    const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || 50), 10000) : 50;
+    const scanParam = url.searchParams.get("scan");
+    const includePoints = url.searchParams.get("points") === "1";
+    // Rides are inferred from a window of readings, so the caller controls how
+    // far back we look rather than how many rides come out.
+    const scan = scanParam
+      ? Math.min(Math.max(1, parseInt(scanParam, 10) || 2000), 10000)
+      : 2000;
 
-    // ?range=24h|7d|30d|... is shorthand; an explicit from/to still wins.
     const hasWindow = url.searchParams.has("range") ||
       (url.searchParams.has("from") && url.searchParams.has("to"));
     let readings;
+    let window = null;
     if (hasWindow) {
-      const window = rangeFromSearchParams(url.searchParams);
+      window = rangeFromSearchParams(url.searchParams);
       if (!window) {
         return NextResponse.json({ error: "Invalid date format. Use ISO 8601." }, { status: 400 });
       }
-      readings = (await getReadingsInRange(deviceId, window.from, window.to)).slice(0, limit);
+      readings = await getReadingsInRange(deviceId, window.from, window.to);
     } else {
-      readings = await getReadings(deviceId, limit);
+      readings = await getReadings(deviceId, scan);
     }
 
-    return NextResponse.json({ data: readings });
+    const rides = detectRides(deviceId, readings);
+
+    return NextResponse.json({
+      data: includePoints ? rides : rides.map(toSummary),
+      meta: {
+        deviceId,
+        readingsScanned: readings.length,
+        rideCount: rides.length,
+        range: window ? { key: window.key, from: window.from, to: window.to, exceedsRetention: window.exceedsRetention } : null,
+      },
+    });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "unknown error";
-    console.error("[api/v1/devices/[deviceId]/readings] GET error:", message);
+    console.error("[api/v1/devices/[deviceId]/rides] GET error:", message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
