@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDevice } from "@/lib/devices";
 import { getLatestReading } from "@/lib/dynamo";
-import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
+import { extractApiKeyFromHeaders, validateApiKeyOrSession } from "@/lib/api-keys";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +9,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  const principal = await validateApiKey(
+  const principal = await validateApiKeyOrSession(
     extractApiKeyFromHeaders(req.headers),
     ["read:devices"]
   );

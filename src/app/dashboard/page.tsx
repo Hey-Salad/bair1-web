@@ -14,6 +14,7 @@ import AIChatView from "@/components/AIChatView";
 import AdminView from "@/components/AdminView";
 import DeveloperView from "@/components/DeveloperView";
 import DataSourceBadge from "@/components/DataSourceBadge";
+import DeviceSensorPanel from "@/components/DeviceSensorPanel";
 import { getAqiState } from "@/lib/aqi";
 
 interface DeviceOption {
@@ -61,6 +62,21 @@ export default function Dashboard() {
   const [board, setBoard] = useState<string | null>(null);
   const [firmwareVersion, setFirmwareVersion] = useState<string | null>(null);
   const [transport, setTransport] = useState<string | null>(null);
+  const [extSensor, setExtSensor] = useState<{
+    temperature: number | null;
+    humidity: number | null;
+    pressure: number | null;
+    dhtTemp: number | null;
+    dhtHum: number | null;
+    accelX: number | null;
+    accelY: number | null;
+    accelZ: number | null;
+    gyroX: number | null;
+    gyroY: number | null;
+    gyroZ: number | null;
+    batteryVoltage: number | null;
+    batteryLevel: number | null;
+  } | null>(null);
 
   const aqiState = getAqiState(aqi);
 
@@ -114,6 +130,9 @@ export default function Dashboard() {
         latestReading(deviceId: "${deviceId}") {
           deviceId timestamp aqi gasVoltage rssi airState uptimeMs
           pm1 pm25 pm4 pm10 sensorModel board firmwareVersion transport
+          temperature humidity pressure dhtTemp dhtHum
+          accelX accelY accelZ gyroX gyroY gyroZ
+          batteryVoltage batteryLevel
         }
       }`;
       const res = await fetch("/api/graphql", {
@@ -139,6 +158,21 @@ export default function Dashboard() {
         setBoard(reading.board);
         setFirmwareVersion(reading.firmwareVersion);
         setTransport(reading.transport);
+        setExtSensor({
+          temperature: reading.temperature ?? null,
+          humidity: reading.humidity ?? null,
+          pressure: reading.pressure ?? null,
+          dhtTemp: reading.dhtTemp ?? null,
+          dhtHum: reading.dhtHum ?? null,
+          accelX: reading.accelX ?? null,
+          accelY: reading.accelY ?? null,
+          accelZ: reading.accelZ ?? null,
+          gyroX: reading.gyroX ?? null,
+          gyroY: reading.gyroY ?? null,
+          gyroZ: reading.gyroZ ?? null,
+          batteryVoltage: reading.batteryVoltage ?? null,
+          batteryLevel: reading.batteryLevel ?? null,
+        });
         setLastUpdated(new Date(reading.timestamp));
         setIsLive(true);
         setLastUpdatedText("Just now");
@@ -416,6 +450,14 @@ export default function Dashboard() {
                   <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">Environmental Intelligence</div>
                   <EnvironmentCards lat={deviceLat} lng={deviceLng} />
                 </div>
+
+                {/* Extended on-device sensor data (BME280 / DHT11 / LSM6DS3 / battery) */}
+                {extSensor && (
+                  <div className="w-full">
+                    <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">On-Device Sensors</div>
+                    <DeviceSensorPanel data={extSensor} />
+                  </div>
+                )}
               </div>
             </div>
           </div>

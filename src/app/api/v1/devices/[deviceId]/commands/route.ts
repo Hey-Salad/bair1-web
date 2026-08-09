@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
+import { extractApiKeyFromHeaders, validateApiKeyOrSession } from "@/lib/api-keys";
 import { enqueueCommand, type CommandType } from "@/lib/dynamo";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +10,17 @@ const VALID_TYPES: CommandType[] = [
   "clean_sps30",
   "reboot",
   "get_state",
+  "ota_update",
+  "beep",
+  "mute_buzzer",
+  "read_pm",
 ];
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  const principal = await validateApiKey(
+  const principal = await validateApiKeyOrSession(
     extractApiKeyFromHeaders(req.headers),
     ["write:devices"],
   );
@@ -55,6 +59,35 @@ export async function POST(
     if (brightness != null && (typeof brightness !== "number" || brightness < 0 || brightness > 255)) {
       return NextResponse.json({ error: "payload.brightness must be 0-255" }, { status: 400 });
     }
+    const mode = payload?.["mode"];
+    if (mode != null && (typeof mode !== "string" || (mode !== "aqi" && mode !== "manual"))) {
+      return NextResponse.json({ error: "payload.mode must be \"aqi\" or \"manual\"" }, { status: 400 });
+    }
+    const color = payload?.["color"];
+    if (color != null && typeof color === "string") {
+      const isHex = /^#[0-9A-Fa-f]{6}$/.test(color);
+      const isName = ["red", "green", "blue", "white", "off"].includes(color);
+      if (!isHex && !isName) {
+        return NextResponse.json({ error: "payload.color must be #RRGGBB or one of: red, green, blue, white, off" }, { status: 400 });
+      }
+    } else if (color != null) {
+      return NextResponse.json({ error: "payload.color must be a string" }, { status: 400 });
+    }
+  }
+
+  if (type === "ota_update") {
+    const url = payload?.["url"];
+    const version = payload?.["version"];
+    if (typeof url !== "string" || !url.startsWith("https://")) {
+      return NextResponse.json({ error: "ota_update requires payload.url (https URL)" }, { status: 400 });
+    }
+    if (typeof version !== "string" || version.length === 0) {
+      return NextResponse.json({ error: "ota_update requires payload.version (non-empty string)" }, { status: 400 });
+    }
+    const sha256 = payload?.["sha256"];
+    if (sha256 != null && (typeof sha256 !== "string" || !/^[0-9a-f]{64}$/.test(sha256))) {
+      return NextResponse.json({ error: "payload.sha256 must be 64 hex chars" }, { status: 400 });
+    }
   }
 
   const command = await enqueueCommand(deviceId, type, payload);
@@ -65,7 +98,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  const principal = await validateApiKey(
+  const principal = await validateApiKeyOrSession(
     extractApiKeyFromHeaders(req.headers),
     ["read:devices"],
   );

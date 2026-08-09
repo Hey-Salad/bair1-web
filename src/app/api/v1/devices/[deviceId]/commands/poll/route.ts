@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { extractApiKeyFromHeaders, validateApiKey } from "@/lib/api-keys";
+import { extractApiKeyFromHeaders, validateApiKeyOrSession } from "@/lib/api-keys";
 import { pollCommands } from "@/lib/dynamo";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,7 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ deviceId: string }> }
 ) {
-  const principal = await validateApiKey(
+  const principal = await validateApiKeyOrSession(
     extractApiKeyFromHeaders(req.headers),
     ["read:devices"],
   );

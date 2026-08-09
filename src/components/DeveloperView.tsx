@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth0 } from "@auth0/auth0-react";
 import type { ApiKeyScope } from "@/lib/api-keys";
 import type { Device } from "@/lib/devices";
+import FirmwareStudio from "./FirmwareStudio";
 
 interface ApiKeyRecord {
   id: string;
@@ -48,6 +49,7 @@ export default function DeveloperView() {
   const [lng, setLng] = useState("");
   const [status, setStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [subTab, setSubTab] = useState<"keys" | "firmware">("keys");
 
   const authHeaders = useCallback(async () => {
     const token = await getAccessTokenSilently();
@@ -182,23 +184,52 @@ export default function DeveloperView() {
         <div>
           <p className="mb-1 text-[11px] font-medium uppercase tracking-wider text-muted/70">Developer platform</p>
           <h1 className="text-xl font-semibold leading-tight text-ink lg:text-2xl">
-            API keys, devices, and agent access
+            {subTab === "keys" ? "API keys, devices, and agent access" : "Firmware Studio — OTA + LED control"}
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => void load()}
-          className="self-start rounded-lg border border-border bg-surface/60 px-3 py-2 text-xs font-medium text-muted transition-colors hover:text-ink"
-        >
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-border bg-surface/60 p-1">
+            <button
+              type="button"
+              onClick={() => setSubTab("keys")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                subTab === "keys" ? "bg-primary text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Keys & Devices
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab("firmware")}
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
+                subTab === "firmware" ? "bg-primary text-white" : "text-muted hover:text-ink"
+              }`}
+            >
+              Firmware Studio
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="self-start rounded-lg border border-border bg-surface/60 px-3 py-2 text-xs font-medium text-muted transition-colors hover:text-ink"
+          >
+            Refresh
+          </button>
+        </div>
       </div>
 
-      {status && (
+      {status && subTab === "keys" && (
         <div className="mb-4 rounded-lg border border-border bg-surface/70 px-4 py-3 text-sm text-muted">
           {status}
         </div>
       )}
+
+      {subTab === "firmware" && (
+        <FirmwareStudio devices={devices} authHeaders={authHeaders} />
+      )}
+
+      {subTab === "keys" && (
+      <>
 
       <div className="grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
         <div className="space-y-4">
@@ -361,6 +392,8 @@ export default function DeveloperView() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </section>
   );
 }

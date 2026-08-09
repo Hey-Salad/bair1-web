@@ -30,6 +30,19 @@ const schema = createSchema({
       pm10: Float
       sensorModel: String
       board: String
+      temperature: Float
+      humidity: Float
+      pressure: Float
+      dhtTemp: Float
+      dhtHum: Float
+      accelX: Float
+      accelY: Float
+      accelZ: Float
+      gyroX: Float
+      gyroY: Float
+      gyroZ: Float
+      batteryVoltage: Float
+      batteryLevel: Float
     }
 
     type RegisteredDevice {

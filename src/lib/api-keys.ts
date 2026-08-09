@@ -212,3 +212,41 @@ export function extractApiKeyFromHeaders(headers: Headers): string | null {
   const authorization = headers.get("authorization");
   return authorization?.startsWith("Bearer ") ? authorization.slice(7) : null;
 }
+
+/**
+ * Validate an API key OR an Auth0 session token, returning a unified principal.
+ * Used by /api/v1/* routes so the dashboard (Auth0 Bearer) and devices (bair1
+ * x-api-key) can hit the same endpoints. Auth0 sessions are mapped to a
+ * developer principal scoped to the user's own devices.
+ */
+export async function validateApiKeyOrSession(
+  keyOrToken: string | null,
+  requiredScopes: ApiKeyScope[] = [],
+): Promise<ApiKeyPrincipal | null> {
+  if (!keyOrToken) return null;
+  // 1. Try as a bair1 API key (system or developer key in DynamoDB).
+  //    Wrap in try/catch so a DynamoDB error doesn't kill the Auth0 fallback.
+  try {
+    const principal = await validateApiKey(keyOrToken, requiredScopes);
+    if (principal) return principal;
+  } catch {
+    // DynamoDB error or table missing — fall through to Auth0.
+  }
+  // 2. Fall back to Auth0 session token. The Auth0 user gets a developer
+  //    principal with all default scopes; device-ownership checks happen
+  //    in the route handler via getDevice().
+  try {
+    const { getOrCreateUser } = await import("./auth");
+    const user = await getOrCreateUser(keyOrToken);
+    if (!user) return null;
+    return {
+      type: "developer",
+      keyId: undefined,
+      userId: user.userId,
+      orgId: user.orgId,
+      scopes: DEFAULT_SCOPES,
+    };
+  } catch {
+    return null;
+  }
+}

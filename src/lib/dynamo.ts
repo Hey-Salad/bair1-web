@@ -288,7 +288,11 @@ export type CommandType =
   | "read_sps30"
   | "clean_sps30"
   | "reboot"
-  | "get_state";
+  | "get_state"
+  | "ota_update"
+  | "beep"
+  | "mute_buzzer"
+  | "read_pm";
 
 export interface Command {
   deviceId: string;
@@ -341,7 +345,12 @@ export async function pollCommands(deviceId: string, limit = 10): Promise<Comman
   const items = await queryAll({
     TableName: COMMANDS_TABLE,
     KeyConditionExpression: "deviceId = :deviceId",
-    ExpressionAttributeValues: { ":deviceId": { S: deviceId } },
+    FilterExpression: "#status = :pending",
+    ExpressionAttributeNames: { "#status": "status" },
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":pending": { S: "pending" },
+    },
     ScanIndexForward: true,
     Limit: Math.min(Math.max(limit, 1), 50),
   }, limit);
@@ -357,8 +366,8 @@ export async function ackCommand(
   ok: boolean,
   result: Record<string, unknown> | null = null,
 ): Promise<void> {
-  const updateExpression = "SET #status = :status, result = :result";
-  const names = { "#status": "status" };
+  const updateExpression = "SET #status = :status, #result = :result";
+  const names = { "#status": "status", "#result": "result" };
   const values: Record<string, AttributeValue> = {
     ":status": { S: ok ? "done" : "done" },
     ":result": { S: JSON.stringify({ ok, ...(result ?? {}) }) },
@@ -430,7 +439,7 @@ const STATE_SORT_KEY = "state#latest";
 
 export interface DeviceState {
   deviceId: string;
-  led: { on: boolean; brightness: number };
+  led: { on: boolean; brightness: number; mode: string; manualColor: number };
   lastSeenAt: string | null;
   updatedAt: string;
 }
@@ -447,13 +456,20 @@ export async function getDeviceState(deviceId: string): Promise<DeviceState> {
   }));
   const item = result.Items?.[0];
   if (!item) {
-    return { deviceId, led: { on: false, brightness: 0 }, lastSeenAt: null, updatedAt: "" };
+    return {
+      deviceId,
+      led: { on: false, brightness: 0, mode: "aqi", manualColor: 0 },
+      lastSeenAt: null,
+      updatedAt: "",
+    };
   }
   return {
     deviceId,
     led: {
       on: item["ledOn"]?.BOOL ?? false,
       brightness: Number(item["ledBrightness"]?.N ?? 0),
+      mode: item["ledMode"]?.S ?? "aqi",
+      manualColor: Number(item["ledManualColor"]?.N ?? 0),
     },
     lastSeenAt: item["lastSeenAt"]?.S ?? null,
     updatedAt: item["updatedAt"]?.S ?? "",
@@ -462,7 +478,7 @@ export async function getDeviceState(deviceId: string): Promise<DeviceState> {
 
 export async function setDeviceState(
   deviceId: string,
-  led: { on: boolean; brightness: number },
+  led: { on: boolean; brightness: number; mode?: string; manualColor?: number },
   lastSeenAt: string | null = null,
 ): Promise<void> {
   const now = new Date().toISOString();
@@ -473,6 +489,58 @@ export async function setDeviceState(
     ledBrightness: { N: String(led.brightness) },
     updatedAt: { S: now },
   };
+  if (led.mode != null) item.ledMode = { S: led.mode };
+  if (led.manualColor != null) item.ledManualColor = { N: String(led.manualColor) };
   if (lastSeenAt) item.lastSeenAt = { S: lastSeenAt };
+  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
+}
+
+// Firmware metadata is stored in COMMANDS_TABLE under SK `firmware#latest`,
+// following the same pattern as `state#latest` (avoids a fourth table).
+
+const FIRMWARE_SORT_KEY = "firmware#latest";
+
+export interface DeviceFirmware {
+  deviceId: string;
+  version: string;
+  r2Key: string;
+  sha256: string | null;
+  uploadedAt: string;
+}
+
+export async function getDeviceFirmware(deviceId: string): Promise<DeviceFirmware | null> {
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId AND commandId = :sk",
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":sk": { S: FIRMWARE_SORT_KEY },
+    },
+    Limit: 1,
+  }));
+  const item = result.Items?.[0];
+  if (!item) return null;
+  return {
+    deviceId,
+    version: item["version"]?.S ?? "",
+    r2Key: item["r2Key"]?.S ?? "",
+    sha256: item["sha256"]?.S ?? null,
+    uploadedAt: item["uploadedAt"]?.S ?? "",
+  };
+}
+
+export async function setDeviceFirmware(
+  deviceId: string,
+  meta: { version: string; r2Key: string; sha256: string | null },
+): Promise<void> {
+  const uploadedAt = new Date().toISOString();
+  const item: Record<string, AttributeValue> = {
+    deviceId: { S: deviceId },
+    commandId: { S: FIRMWARE_SORT_KEY },
+    version: { S: meta.version },
+    r2Key: { S: meta.r2Key },
+    uploadedAt: { S: uploadedAt },
+  };
+  if (meta.sha256) item.sha256 = { S: meta.sha256 };
   await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
 }
