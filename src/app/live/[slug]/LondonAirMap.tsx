@@ -77,6 +77,7 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
   const bair1PointRef = useRef(bair1Point);
   const [mapReady, setMapReady] = useState(false);
   const [selectedId, setSelectedId] = useState(bair1Point.id);
+  const [mapError, setMapError] = useState<string | null>(null);
   const [showCycle, setShowCycle] = useState(false);
   const [cycle, setCycle] = useState<CycleInfrastructure | null>(null);
   const [cycleError, setCycleError] = useState<string | null>(null);
@@ -122,7 +123,21 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
       attributionControl: true,
     });
     map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
+
+    // Markers and GeoJSON layers only need the style, not tiles. Gating them on
+    // "load" (which also waits for every initial tile) means a slow network or a
+    // throttled background tab leaves the map with no pins at all. "style.load"
+    // fires much earlier and is already enough for addSource/addLayer.
+    map.on("style.load", () => setMapReady(true));
     map.on("load", () => setMapReady(true));
+
+    // Nothing was listening for mapbox errors, so any failure here was silent and
+    // the map just sat there blank. Surface it instead.
+    map.on("error", (event) => {
+      const message = event.error?.message ?? "Unknown mapbox error";
+      console.error("[LondonAirMap] mapbox error:", message);
+      setMapError(message);
+    });
     mapRef.current = map;
     const markers = markersRef.current;
     const resizeObserver = new ResizeObserver(() => map.resize());
@@ -382,6 +397,7 @@ export default function LondonAirMap({ stations, bair1Point }: Props) {
         <div className="p-4 text-muted">
           <p className="font-medium text-ink">Network now</p>
           <p className="mt-1.5 leading-5">{stations.length} stations · {stationCounts.low} low · {stationCounts.moderate} moderate · {stationCounts.high} high</p>
+          {mapError && <p className="mt-1.5 leading-5 text-[#ff3b30]">Map: {mapError}</p>}
           {showCycle && (
             <p className="mt-1.5 leading-5">
               {cycleError
