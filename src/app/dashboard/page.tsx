@@ -171,9 +171,11 @@ export default function Dashboard() {
         setPm4(null);
         setPm10(null);
         setTransport("notehub");
-        setLastUpdated(new Date(telemetry.capturedAt));
-        setLastUpdatedText("Just now");
-        setIsLive(Date.now() - new Date(telemetry.receivedAt || telemetry.capturedAt).getTime() < 30 * 60 * 1000);
+        const observedAt = new Date(telemetry.receivedAt || telemetry.capturedAt);
+        const ageMinutes = Math.max(0, Math.floor((Date.now() - observedAt.getTime()) / 60000));
+        setLastUpdated(observedAt);
+        setLastUpdatedText(ageMinutes < 1 ? "Just now" : `${ageMinutes}m ago`);
+        setIsLive(ageMinutes < 90);
         return;
       }
       throw new Error("No reading");
