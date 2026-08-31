@@ -3,7 +3,7 @@ import {
   QueryCommand,
   ScanCommand,
   UpdateItemCommand,
-  DeleteItemCommand,
+  ConditionalCheckFailedException,
   type AttributeValue,
   type QueryCommandInput,
   type ScanCommandInput,
@@ -504,31 +504,26 @@ export async function setNotecardTelemetry(
   telemetry: Omit<NotecardTelemetry, "updatedAt">,
 ): Promise<void> {
   const updatedAt = new Date().toISOString();
-  const values: Record<string, AttributeValue> = {
+  const heartbeatValues: Record<string, AttributeValue> = {
     ":capturedAt": { S: telemetry.capturedAt },
     ":receivedAt": { S: telemetry.receivedAt },
     ":updatedAt": { S: updatedAt },
   };
-  const names: Record<string, string> = {};
-  const expressions = [
+  const heartbeatNames: Record<string, string> = {};
+  const heartbeatExpressions = [
     "capturedAt = :capturedAt",
     "receivedAt = :receivedAt",
     "updatedAt = :updatedAt",
   ];
   for (const [key, value] of Object.entries({
-    temperature: telemetry.temperature,
-    humidity: telemetry.humidity,
-    pressure: telemetry.pressure,
-    batteryVoltage: telemetry.batteryVoltage,
-    motion: telemetry.motion,
     lat: telemetry.lat,
     lng: telemetry.lng,
     locationAccuracy: telemetry.locationAccuracy,
   })) {
     if (value == null) continue;
-    names[`#${key}`] = key;
-    values[`:${key}`] = { N: String(value) };
-    expressions.push(`#${key} = :${key}`);
+    heartbeatNames[`#${key}`] = key;
+    heartbeatValues[`:${key}`] = { N: String(value) };
+    heartbeatExpressions.push(`#${key} = :${key}`);
   }
   for (const [key, value] of Object.entries({
     deviceStatus: telemetry.deviceStatus,
@@ -537,20 +532,60 @@ export async function setNotecardTelemetry(
     sourceFile: telemetry.sourceFile,
   })) {
     if (!value) continue;
-    names[`#${key}`] = key;
-    values[`:${key}`] = { S: value };
-    expressions.push(`#${key} = :${key}`);
+    heartbeatNames[`#${key}`] = key;
+    heartbeatValues[`:${key}`] = { S: value };
+    heartbeatExpressions.push(`#${key} = :${key}`);
   }
-  await dynamoClient.send(new UpdateItemCommand({
-    TableName: COMMANDS_TABLE,
-    Key: {
-      deviceId: { S: telemetry.deviceId },
-      commandId: { S: NOTECARD_TELEMETRY_SORT_KEY },
-    },
-    UpdateExpression: `SET ${expressions.join(", ")}`,
-    ExpressionAttributeNames: names,
-    ExpressionAttributeValues: values,
-  }));
+  const latestKey = {
+    deviceId: { S: telemetry.deviceId },
+    commandId: { S: NOTECARD_TELEMETRY_SORT_KEY },
+  };
+  try {
+    await dynamoClient.send(new UpdateItemCommand({
+      TableName: COMMANDS_TABLE,
+      Key: latestKey,
+      UpdateExpression: `SET ${heartbeatExpressions.join(", ")}`,
+      ...(Object.keys(heartbeatNames).length ? { ExpressionAttributeNames: heartbeatNames } : {}),
+      ExpressionAttributeValues: heartbeatValues,
+      ConditionExpression: "attribute_not_exists(capturedAt) OR capturedAt <= :capturedAt",
+    }));
+  } catch (error) {
+    if (!(error instanceof ConditionalCheckFailedException)) throw error;
+  }
+
+  const measurements = {
+    temperature: telemetry.temperature,
+    humidity: telemetry.humidity,
+    pressure: telemetry.pressure,
+    batteryVoltage: telemetry.batteryVoltage,
+    motion: telemetry.motion,
+  };
+  if (Object.values(measurements).some((value) => value != null)) {
+    const measurementNames: Record<string, string> = {};
+    const measurementValues: Record<string, AttributeValue> = {
+      ":measurementAt": { S: telemetry.capturedAt },
+      ":updatedAt": { S: updatedAt },
+    };
+    const measurementExpressions = ["measurementAt = :measurementAt", "updatedAt = :updatedAt"];
+    for (const [key, value] of Object.entries(measurements)) {
+      if (value == null) continue;
+      measurementNames[`#${key}`] = key;
+      measurementValues[`:${key}`] = { N: String(value) };
+      measurementExpressions.push(`#${key} = :${key}`);
+    }
+    try {
+      await dynamoClient.send(new UpdateItemCommand({
+        TableName: COMMANDS_TABLE,
+        Key: latestKey,
+        UpdateExpression: `SET ${measurementExpressions.join(", ")}`,
+        ExpressionAttributeNames: measurementNames,
+        ExpressionAttributeValues: measurementValues,
+        ConditionExpression: "attribute_not_exists(measurementAt) OR measurementAt <= :measurementAt",
+      }));
+    } catch (error) {
+      if (!(error instanceof ConditionalCheckFailedException)) throw error;
+    }
+  }
 
   const safeFile = (telemetry.sourceFile ?? "event").replace(/[^a-zA-Z0-9._-]/g, "_");
   const eventItem: Record<string, AttributeValue> = {
