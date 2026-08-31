@@ -7,7 +7,7 @@ import Logo from "@/components/Logo";
 import AqiGauge from "@/components/AqiGauge";
 import GuidanceStrip from "@/components/GuidanceStrip";
 import EnvironmentCards from "@/components/EnvironmentCards";
-import Navigation, { type Tab } from "@/components/Navigation";
+import Navigation, { type Tab, type ViewerRole } from "@/components/Navigation";
 import MapView from "@/components/MapView";
 import AnalyticsView from "@/components/AnalyticsView";
 import AIChatView from "@/components/AIChatView";
@@ -67,6 +67,7 @@ export default function Dashboard() {
   const [hasAirReading, setHasAirReading] = useState(false);
   const [notecardTelemetry, setNotecardTelemetry] = useState<NotecardTelemetryPoint | null>(null);
   const [notecardHistory, setNotecardHistory] = useState<NotecardTelemetryPoint[]>([]);
+  const [viewerRole, setViewerRole] = useState<ViewerRole>("user");
 
   const aqiState = getAqiState(aqi);
 
@@ -76,6 +77,7 @@ export default function Dashboard() {
     async function fetchDevices() {
       try {
         const query = `{
+          viewer { role }
           registeredDevices { deviceId name status lat lng }
           activeDeviceIds
         }`;
@@ -86,6 +88,10 @@ export default function Dashboard() {
         });
         if (!res.ok) return;
         const json = await res.json();
+        const role = json.data?.viewer?.role;
+        if (role === "user" || role === "admin" || role === "super_admin") {
+          setViewerRole(role);
+        }
         const registered = json.data?.registeredDevices ?? [];
         const activeIds: string[] = json.data?.activeDeviceIds ?? [];
 
@@ -270,6 +276,7 @@ export default function Dashboard() {
   }
 
   const activeDeviceName = devices.find((d) => d.deviceId === selectedDevice)?.name ?? "No device selected";
+  const isAdmin = viewerRole === "admin" || viewerRole === "super_admin";
 
   return (
     <main className="flex-1 flex flex-col lg:min-h-screen lg:bg-bg lg:pl-64">
@@ -304,7 +311,10 @@ export default function Dashboard() {
             </div>
             <div className="text-right">
               <div className="text-xs font-medium text-ink/70">{user?.name ?? "Bair1"}</div>
-              <div className="text-[10px] text-muted/60 lg:hidden">{lastUpdatedText}</div>
+              <div className="text-[10px] text-muted/60">
+                <span className="hidden lg:inline">{isAdmin ? "Workspace admin" : "Workspace member"}</span>
+                <span className="lg:hidden">{lastUpdatedText}</span>
+              </div>
             </div>
             <button
               onClick={logout}
@@ -487,6 +497,39 @@ export default function Dashboard() {
                   <div className="text-xs font-medium text-muted uppercase tracking-wider mb-2">Environmental Intelligence</div>
                   <EnvironmentCards lat={deviceLat} lng={deviceLng} />
                 </div>
+
+                <div className="w-full rounded-2xl border border-border bg-surface p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-xs font-medium uppercase tracking-wider text-muted">Workspace access</div>
+                      <div className="mt-1 text-sm font-semibold text-ink">
+                        You are a {isAdmin ? "workspace admin" : "workspace member"}
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+                      {isAdmin ? "Manage" : "Monitor"}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 text-xs sm:grid-cols-2">
+                    <div className="rounded-xl bg-bg/55 p-3">
+                      <div className="font-semibold text-ink/85">Team members</div>
+                      <p className="mt-1 leading-5 text-muted">See workspace devices, analytics and air guidance.</p>
+                    </div>
+                    <div className="rounded-xl bg-bg/55 p-3">
+                      <div className="font-semibold text-ink/85">External viewers</div>
+                      <p className="mt-1 leading-5 text-muted">Use a signed live-view link with read-only data.</p>
+                    </div>
+                  </div>
+                  {isAdmin && (
+                    <button
+                      type="button"
+                      onClick={() => setTab("admin")}
+                      className="mt-4 text-xs font-semibold text-primary transition-colors hover:text-primary-hover"
+                    >
+                      Manage team and devices →
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -502,10 +545,10 @@ export default function Dashboard() {
           />
         )}
         {tab === "developer" && <DeveloperView />}
-        {tab === "admin" && <AdminView />}
+        {tab === "admin" && isAdmin && <AdminView />}
       </div>
 
-      <Navigation active={tab} onChange={setTab} />
+      <Navigation active={tab} onChange={setTab} role={viewerRole} />
     </main>
   );
 }

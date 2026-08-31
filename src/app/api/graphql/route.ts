@@ -125,7 +125,15 @@ const schema = createSchema<GraphqlContext>({
       updatedAt: String!
     }
 
+    type Viewer {
+      name: String!
+      email: String!
+      role: String!
+      orgId: String!
+    }
+
     type Query {
+      viewer: Viewer!
       readings(deviceId: String!, limit: Int): [Reading!]!
       latestReading(deviceId: String!): Reading
       activeDeviceIds: [String!]!
@@ -146,6 +154,19 @@ const schema = createSchema<GraphqlContext>({
   `,
   resolvers: {
     Query: {
+      viewer: (_parent, _args, context) => {
+        if (context.actor.kind === "user") {
+          const { name, email, role, orgId } = context.actor.user;
+          return { name, email, role, orgId };
+        }
+
+        return {
+          name: "API client",
+          email: "",
+          role: context.actor.principal.type === "system" ? "admin" : "user",
+          orgId: context.actor.principal.orgId,
+        };
+      },
       readings: async (_parent, args, context) => {
         await requireDeviceAccess(context.actor, args.deviceId);
         return getReadings(args.deviceId, args.limit ?? 100);
