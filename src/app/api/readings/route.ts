@@ -121,9 +121,24 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const principal = await validateApiKey(
+    extractApiKeyFromHeaders(req.headers),
+    ["read:readings"],
+  );
+  if (!principal) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
   try {
-    return NextResponse.json({ readings: await getLatestReadings(20) });
+    const readings = await getLatestReadings(20);
+    if (principal.type === "system") {
+      return NextResponse.json({ readings });
+    }
+    const allowed = await Promise.all(readings.map(async (reading) => {
+      const device = await getDevice(reading.deviceId);
+      return device?.ownerId === principal.userId ? reading : null;
+    }));
+    return NextResponse.json({ readings: allowed.filter(Boolean) });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -261,10 +261,11 @@ const latest = await bair1.latest();`}
             <code className="bg-[#1A2410]/5 px-1.5 py-0.5 rounded text-sm font-mono">
               /api/graphql
             </code>
-            . Supports introspection.
+            . It requires a signed-in Auth0 access token or a scoped Bair1 API key.
           </p>
           <CodeBlock label="Example query">
             {`curl -X POST https://www.bair1.live/api/graphql \\
+  -H "Authorization: Bearer $BAIR1_API_KEY" \\
   -H "Content-Type: application/json" \\
   -d '{
     "query": "{

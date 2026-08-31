@@ -46,6 +46,35 @@ displays real-time and historical data.
                    └──────────────────┘
 ```
 
+### Saddle Sense / Blues Notecard path
+
+The current Saddle Sense stage can run a Blues Notecard without a host MCU for
+connectivity, location, and onboard temperature. These events use a dedicated
+ingress instead of the particulate-reading endpoint:
+
+```text
+Blues Notecard → Notehub HTTP Route → /api/integrations/notehub
+                                      ├─ latest private telemetry
+                                      └─ PM/AQI reading only when PM/AQI exists
+```
+
+The ingress validates a Notehub-only route secret, optionally checks the
+ProductUID, and converts the raw DeviceUID into a stable HMAC-derived Bair1 ID.
+Raw DeviceUIDs, IMEI/ICCID values, and full Notehub event envelopes are not
+persisted. Temperature/location-only events never create an AQI value.
+
+Configure the Notehub HTTP Route to:
+
+- `POST https://www.bair1.live/api/integrations/notehub`
+- add `Authorization: Bearer [$$BAIR1_ROUTE_SECRET]` using a Notehub project secret
+- send the full event JSON, or an equivalent object retaining `device`,
+  `product`, `file`, `when`, `received`, `body`, `best_lat`, and `best_lon`
+
+The server needs `NOTEHUB_ROUTE_SECRET`, `NOTEHUB_DEVICE_ID_SALT`, and
+`NOTEHUB_PRODUCT_UID`. Exact locations remain available only through an
+authenticated dashboard or a scoped developer API key. Public feeds must use
+an explicitly configured approximate reference location.
+
 ---
 
 ## Repositories

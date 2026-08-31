@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { getAqiColor } from "@/lib/aqi";
+import { useAuthenticatedFetch } from "@/lib/use-authenticated-fetch";
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 
@@ -34,6 +35,7 @@ const legend = [
 const REFRESH_INTERVAL = 15000; // 15 seconds
 
 export default function MapView() {
+  const authenticatedFetch = useAuthenticatedFetch();
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const markersRef = useRef<Map<string, mapboxgl.Marker>>(new Map());
@@ -53,7 +55,7 @@ export default function MapView() {
           latestReading { aqi timestamp lat lng }
         }
       }`;
-      const res = await fetch("/api/graphql", {
+      const res = await authenticatedFetch("/api/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -84,7 +86,7 @@ export default function MapView() {
       setLastRefresh(new Date());
     } catch {}
     setLoading(false);
-  }, [selectedDevice]);
+  }, [authenticatedFetch, selectedDevice]);
 
   // Fetch location trail for selected device
   const fetchTrail = useCallback(async () => {
@@ -99,7 +101,7 @@ export default function MapView() {
           to: "${now.toISOString()}"
         ) { timestamp lat lng aqi }
       }`;
-      const res = await fetch("/api/graphql", {
+      const res = await authenticatedFetch("/api/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -108,12 +110,12 @@ export default function MapView() {
       const json = await res.json();
       setTrail(json.data?.locationTrail ?? []);
     } catch {}
-  }, [selectedDevice, trailHours]);
+  }, [authenticatedFetch, selectedDevice, trailHours]);
 
   // Initial load
   useEffect(() => {
     fetchDevices();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchDevices]);
 
   // Auto-refresh when tracking
   useEffect(() => {

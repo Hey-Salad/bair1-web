@@ -15,12 +15,23 @@ import AdminView from "@/components/AdminView";
 import DeveloperView from "@/components/DeveloperView";
 import DataSourceBadge from "@/components/DataSourceBadge";
 import { getAqiState } from "@/lib/aqi";
+import { useAuthenticatedFetch } from "@/lib/use-authenticated-fetch";
 
 interface DeviceOption {
   deviceId: string;
   name: string;
   lat?: number | null;
   lng?: number | null;
+}
+
+interface NotecardTelemetry {
+  capturedAt: string;
+  temperature: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  locationAvailable: boolean;
+  locationSource: string | null;
+  sourceFile: string | null;
 }
 
 export default function Dashboard() {
@@ -32,6 +43,7 @@ export default function Dashboard() {
     logout: auth0Logout,
     user,
   } = useAuth0();
+  const authenticatedFetch = useAuthenticatedFetch();
 
   const signup = () =>
     login({ authorizationParams: { screen_hint: "signup" } });
@@ -61,18 +73,21 @@ export default function Dashboard() {
   const [board, setBoard] = useState<string | null>(null);
   const [firmwareVersion, setFirmwareVersion] = useState<string | null>(null);
   const [transport, setTransport] = useState<string | null>(null);
+  const [hasAirReading, setHasAirReading] = useState(false);
+  const [notecardTelemetry, setNotecardTelemetry] = useState<NotecardTelemetry | null>(null);
 
   const aqiState = getAqiState(aqi);
 
   // Fetch registered devices
   useEffect(() => {
+    if (!isAuthenticated) return;
     async function fetchDevices() {
       try {
         const query = `{
           registeredDevices { deviceId name status lat lng }
           activeDeviceIds
         }`;
-        const res = await fetch("/api/graphql", {
+        const res = await authenticatedFetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
@@ -102,7 +117,7 @@ export default function Dashboard() {
       } catch {}
     }
     fetchDevices();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [authenticatedFetch, isAuthenticated, selectedDevice]);
 
   // Fetch live data
   const fetchLive = useCallback(async () => {
@@ -115,8 +130,11 @@ export default function Dashboard() {
           deviceId timestamp aqi gasVoltage rssi airState uptimeMs
           pm1 pm25 pm4 pm10 sensorModel board firmwareVersion transport
         }
+        notecardTelemetry(deviceId: "${deviceId}") {
+          capturedAt temperature humidity pressure locationAvailable locationSource sourceFile
+        }
       }`;
-      const res = await fetch("/api/graphql", {
+      const res = await authenticatedFetch("/api/graphql", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query }),
@@ -124,7 +142,10 @@ export default function Dashboard() {
       if (!res.ok) throw new Error("API unavailable");
       const json = await res.json();
       const reading = json.data?.latestReading;
+      const telemetry = json.data?.notecardTelemetry as NotecardTelemetry | null;
+      setNotecardTelemetry(telemetry);
       if (reading?.aqi !== undefined) {
+        setHasAirReading(true);
         setAqi(reading.aqi);
         setSensorId(reading.deviceId);
         setGasVoltage(reading.gasVoltage);
@@ -144,11 +165,26 @@ export default function Dashboard() {
         setLastUpdatedText("Just now");
         return;
       }
+      if (telemetry) {
+        setHasAirReading(false);
+        setSensorId(deviceId);
+        setPm1(null);
+        setPm25(null);
+        setPm4(null);
+        setPm10(null);
+        setTransport("notehub");
+        setLastUpdated(new Date(telemetry.capturedAt));
+        setLastUpdatedText("Just now");
+        setIsLive(true);
+        return;
+      }
       throw new Error("No reading");
     } catch {
+      setHasAirReading(false);
+      setNotecardTelemetry(null);
       setIsLive(false);
     }
-  }, [selectedDevice]);
+  }, [authenticatedFetch, selectedDevice]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -292,8 +328,39 @@ export default function Dashboard() {
                   source="Simulated readings"
                 />
 
-                <AqiGauge aqi={aqi} size={240} />
-                <GuidanceStrip aqiState={aqiState} />
+                {hasAirReading ? (
+                  <>
+                    <AqiGauge aqi={aqi} size={240} />
+                    <GuidanceStrip aqiState={aqiState} />
+                  </>
+                ) : notecardTelemetry ? (
+                  <div className="w-full rounded-2xl border border-primary/30 bg-primary/5 p-5">
+                    <div className="text-xs font-medium uppercase tracking-wider text-primary">Notecard online</div>
+                    <h2 className="mt-2 text-xl font-semibold text-ink">Waiting for particulate data</h2>
+                    <p className="mt-2 text-sm leading-6 text-muted">
+                      Location and onboard telemetry are arriving normally. AQI will appear after a host MCU sends PM readings.
+                    </p>
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-border bg-bg/50 p-3">
+                        <div className="text-2xl font-semibold text-ink">
+                          {notecardTelemetry.temperature == null ? "—" : `${notecardTelemetry.temperature.toFixed(1)}°C`}
+                        </div>
+                        <div className="mt-1 text-[10px] uppercase text-muted">Onboard temperature</div>
+                      </div>
+                      <div className="rounded-xl border border-border bg-bg/50 p-3">
+                        <div className="text-sm font-semibold text-ink">
+                          {notecardTelemetry.locationAvailable ? "Available privately" : "Waiting for fix"}
+                        </div>
+                        <div className="mt-1 text-[10px] uppercase text-muted">Location</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <AqiGauge aqi={aqi} size={240} />
+                    <GuidanceStrip aqiState={aqiState} />
+                  </>
+                )}
 
                 {/* PM particulate stats */}
                 {pm25 != null && (

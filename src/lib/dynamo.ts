@@ -476,3 +476,73 @@ export async function setDeviceState(
   if (lastSeenAt) item.lastSeenAt = { S: lastSeenAt };
   await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
 }
+
+const NOTECARD_TELEMETRY_SORT_KEY = "telemetry#notecard#latest";
+
+export interface NotecardTelemetry {
+  deviceId: string;
+  capturedAt: string;
+  receivedAt: string;
+  temperature: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  lat: number | null;
+  lng: number | null;
+  locationAccuracy: number | null;
+  locationSource: string | null;
+  sourceFile: string | null;
+  updatedAt: string;
+}
+
+export async function setNotecardTelemetry(
+  telemetry: Omit<NotecardTelemetry, "updatedAt">,
+): Promise<void> {
+  const item: Record<string, AttributeValue> = {
+    deviceId: { S: telemetry.deviceId },
+    commandId: { S: NOTECARD_TELEMETRY_SORT_KEY },
+    capturedAt: { S: telemetry.capturedAt },
+    receivedAt: { S: telemetry.receivedAt },
+    updatedAt: { S: new Date().toISOString() },
+  };
+  for (const [key, value] of Object.entries({
+    temperature: telemetry.temperature,
+    humidity: telemetry.humidity,
+    pressure: telemetry.pressure,
+    lat: telemetry.lat,
+    lng: telemetry.lng,
+    locationAccuracy: telemetry.locationAccuracy,
+  })) {
+    if (value != null) item[key] = { N: String(value) };
+  }
+  if (telemetry.locationSource) item.locationSource = { S: telemetry.locationSource };
+  if (telemetry.sourceFile) item.sourceFile = { S: telemetry.sourceFile };
+  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
+}
+
+export async function getNotecardTelemetry(deviceId: string): Promise<NotecardTelemetry | null> {
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId AND commandId = :sk",
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":sk": { S: NOTECARD_TELEMETRY_SORT_KEY },
+    },
+    Limit: 1,
+  }));
+  const item = result.Items?.[0];
+  if (!item) return null;
+  return {
+    deviceId,
+    capturedAt: item.capturedAt?.S ?? "",
+    receivedAt: item.receivedAt?.S ?? "",
+    temperature: item.temperature?.N == null ? null : Number(item.temperature.N),
+    humidity: item.humidity?.N == null ? null : Number(item.humidity.N),
+    pressure: item.pressure?.N == null ? null : Number(item.pressure.N),
+    lat: item.lat?.N == null ? null : Number(item.lat.N),
+    lng: item.lng?.N == null ? null : Number(item.lng.N),
+    locationAccuracy: item.locationAccuracy?.N == null ? null : Number(item.locationAccuracy.N),
+    locationSource: item.locationSource?.S ?? null,
+    sourceFile: item.sourceFile?.S ?? null,
+    updatedAt: item.updatedAt?.S ?? "",
+  };
+}

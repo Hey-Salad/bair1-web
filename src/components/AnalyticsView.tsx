@@ -16,6 +16,7 @@ import {
   Cell,
 } from "recharts";
 import { getAqiColor } from "@/lib/aqi";
+import { useAuthenticatedFetch } from "@/lib/use-authenticated-fetch";
 
 interface Props {
   deviceId?: string;
@@ -31,6 +32,7 @@ interface TimePoint {
 type Range = "24h" | "7d" | "30d";
 
 export default function AnalyticsView({ deviceId }: Props) {
+  const authenticatedFetch = useAuthenticatedFetch();
   const [range, setRange] = useState<Range>("24h");
   const [data, setData] = useState<TimePoint[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +56,7 @@ export default function AnalyticsView({ deviceId }: Props) {
       }`;
 
       try {
-        const res = await fetch("/api/graphql", {
+        const res = await authenticatedFetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
@@ -68,7 +70,7 @@ export default function AnalyticsView({ deviceId }: Props) {
     }
 
     fetchData();
-  }, [deviceId, range]);
+  }, [authenticatedFetch, deviceId, range]);
 
   if (loading) {
     return (

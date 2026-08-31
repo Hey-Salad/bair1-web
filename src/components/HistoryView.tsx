@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { getAqiColor } from "@/lib/aqi";
+import { useAuthenticatedFetch } from "@/lib/use-authenticated-fetch";
 
 interface DayData {
   day: string;
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function HistoryView({ deviceId }: Props) {
+  const authenticatedFetch = useAuthenticatedFetch();
   const [history, setHistory] = useState<DayData[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -39,7 +41,7 @@ export default function HistoryView({ deviceId }: Props) {
           ) { timestamp aqi }
         }`;
 
-        const res = await fetch("/api/graphql", {
+        const res = await authenticatedFetch("/api/graphql", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ query }),
@@ -99,7 +101,7 @@ export default function HistoryView({ deviceId }: Props) {
     }
 
     fetchHistory();
-  }, [deviceId]);
+  }, [authenticatedFetch, deviceId]);
 
   if (loading) {
     return (
