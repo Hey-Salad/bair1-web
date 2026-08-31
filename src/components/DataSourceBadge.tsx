@@ -4,9 +4,10 @@ interface DataSourceBadgeProps {
   isLive: boolean;
   sensorId?: string;
   source?: string;
+  hasDevice?: boolean;
 }
 
-export default function DataSourceBadge({ isLive, sensorId, source }: DataSourceBadgeProps) {
+export default function DataSourceBadge({ isLive, sensorId, source, hasDevice = false }: DataSourceBadgeProps) {
   if (isLive) {
     return (
       <div className="flex items-center gap-2 bg-bair-green/10 border border-bair-green/20 rounded-full px-3 py-1.5">
@@ -16,6 +17,17 @@ export default function DataSourceBadge({ isLive, sensorId, source }: DataSource
         </span>
         <span className="text-xs font-medium text-bair-green">
           Live — Sensor {sensorId?.slice(-4) ?? ""}
+        </span>
+      </div>
+    );
+  }
+
+  if (hasDevice) {
+    return (
+      <div className="flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-muted/50" />
+        <span className="text-xs font-medium text-muted">
+          Registered — Sensor {sensorId?.slice(-4) ?? ""}
         </span>
       </div>
     );

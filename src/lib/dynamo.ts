@@ -478,6 +478,8 @@ export async function setDeviceState(
 }
 
 const NOTECARD_TELEMETRY_SORT_KEY = "telemetry#notecard#latest";
+const NOTECARD_TELEMETRY_EVENT_PREFIX = "telemetry#notecard#event#";
+const NOTECARD_HISTORY_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 
 export interface NotecardTelemetry {
   deviceId: string;
@@ -486,6 +488,10 @@ export interface NotecardTelemetry {
   temperature: number | null;
   humidity: number | null;
   pressure: number | null;
+  batteryVoltage: number | null;
+  motion: number | null;
+  deviceStatus: string | null;
+  transport: string | null;
   lat: number | null;
   lng: number | null;
   locationAccuracy: number | null;
@@ -497,26 +503,111 @@ export interface NotecardTelemetry {
 export async function setNotecardTelemetry(
   telemetry: Omit<NotecardTelemetry, "updatedAt">,
 ): Promise<void> {
-  const item: Record<string, AttributeValue> = {
+  const updatedAt = new Date().toISOString();
+  const values: Record<string, AttributeValue> = {
+    ":capturedAt": { S: telemetry.capturedAt },
+    ":receivedAt": { S: telemetry.receivedAt },
+    ":updatedAt": { S: updatedAt },
+  };
+  const names: Record<string, string> = {};
+  const expressions = [
+    "capturedAt = :capturedAt",
+    "receivedAt = :receivedAt",
+    "updatedAt = :updatedAt",
+  ];
+  for (const [key, value] of Object.entries({
+    temperature: telemetry.temperature,
+    humidity: telemetry.humidity,
+    pressure: telemetry.pressure,
+    batteryVoltage: telemetry.batteryVoltage,
+    motion: telemetry.motion,
+    lat: telemetry.lat,
+    lng: telemetry.lng,
+    locationAccuracy: telemetry.locationAccuracy,
+  })) {
+    if (value == null) continue;
+    names[`#${key}`] = key;
+    values[`:${key}`] = { N: String(value) };
+    expressions.push(`#${key} = :${key}`);
+  }
+  for (const [key, value] of Object.entries({
+    deviceStatus: telemetry.deviceStatus,
+    transport: telemetry.transport,
+    locationSource: telemetry.locationSource,
+    sourceFile: telemetry.sourceFile,
+  })) {
+    if (!value) continue;
+    names[`#${key}`] = key;
+    values[`:${key}`] = { S: value };
+    expressions.push(`#${key} = :${key}`);
+  }
+  await dynamoClient.send(new UpdateItemCommand({
+    TableName: COMMANDS_TABLE,
+    Key: {
+      deviceId: { S: telemetry.deviceId },
+      commandId: { S: NOTECARD_TELEMETRY_SORT_KEY },
+    },
+    UpdateExpression: `SET ${expressions.join(", ")}`,
+    ExpressionAttributeNames: names,
+    ExpressionAttributeValues: values,
+  }));
+
+  const safeFile = (telemetry.sourceFile ?? "event").replace(/[^a-zA-Z0-9._-]/g, "_");
+  const eventItem: Record<string, AttributeValue> = {
     deviceId: { S: telemetry.deviceId },
-    commandId: { S: NOTECARD_TELEMETRY_SORT_KEY },
+    commandId: {
+      S: `${NOTECARD_TELEMETRY_EVENT_PREFIX}${telemetry.capturedAt}#${telemetry.receivedAt}#${safeFile}`,
+    },
     capturedAt: { S: telemetry.capturedAt },
     receivedAt: { S: telemetry.receivedAt },
-    updatedAt: { S: new Date().toISOString() },
+    updatedAt: { S: updatedAt },
+    expiresAt: { N: String(Math.floor(Date.now() / 1000) + NOTECARD_HISTORY_RETENTION_SECONDS) },
   };
   for (const [key, value] of Object.entries({
     temperature: telemetry.temperature,
     humidity: telemetry.humidity,
     pressure: telemetry.pressure,
+    batteryVoltage: telemetry.batteryVoltage,
+    motion: telemetry.motion,
     lat: telemetry.lat,
     lng: telemetry.lng,
     locationAccuracy: telemetry.locationAccuracy,
   })) {
-    if (value != null) item[key] = { N: String(value) };
+    if (value != null) eventItem[key] = { N: String(value) };
   }
-  if (telemetry.locationSource) item.locationSource = { S: telemetry.locationSource };
-  if (telemetry.sourceFile) item.sourceFile = { S: telemetry.sourceFile };
-  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: item }));
+  for (const [key, value] of Object.entries({
+    deviceStatus: telemetry.deviceStatus,
+    transport: telemetry.transport,
+    locationSource: telemetry.locationSource,
+    sourceFile: telemetry.sourceFile,
+  })) {
+    if (value) eventItem[key] = { S: value };
+  }
+  await dynamoClient.send(new PutItemCommand({ TableName: COMMANDS_TABLE, Item: eventItem }));
+}
+
+function parseNotecardTelemetryItem(
+  deviceId: string,
+  item: Record<string, AttributeValue>,
+): NotecardTelemetry {
+  return {
+    deviceId,
+    capturedAt: item.capturedAt?.S ?? "",
+    receivedAt: item.receivedAt?.S ?? "",
+    temperature: item.temperature?.N == null ? null : Number(item.temperature.N),
+    humidity: item.humidity?.N == null ? null : Number(item.humidity.N),
+    pressure: item.pressure?.N == null ? null : Number(item.pressure.N),
+    batteryVoltage: item.batteryVoltage?.N == null ? null : Number(item.batteryVoltage.N),
+    motion: item.motion?.N == null ? null : Number(item.motion.N),
+    deviceStatus: item.deviceStatus?.S ?? null,
+    transport: item.transport?.S ?? null,
+    lat: item.lat?.N == null ? null : Number(item.lat.N),
+    lng: item.lng?.N == null ? null : Number(item.lng.N),
+    locationAccuracy: item.locationAccuracy?.N == null ? null : Number(item.locationAccuracy.N),
+    locationSource: item.locationSource?.S ?? null,
+    sourceFile: item.sourceFile?.S ?? null,
+    updatedAt: item.updatedAt?.S ?? "",
+  };
 }
 
 export async function getNotecardTelemetry(deviceId: string): Promise<NotecardTelemetry | null> {
@@ -531,18 +622,22 @@ export async function getNotecardTelemetry(deviceId: string): Promise<NotecardTe
   }));
   const item = result.Items?.[0];
   if (!item) return null;
-  return {
-    deviceId,
-    capturedAt: item.capturedAt?.S ?? "",
-    receivedAt: item.receivedAt?.S ?? "",
-    temperature: item.temperature?.N == null ? null : Number(item.temperature.N),
-    humidity: item.humidity?.N == null ? null : Number(item.humidity.N),
-    pressure: item.pressure?.N == null ? null : Number(item.pressure.N),
-    lat: item.lat?.N == null ? null : Number(item.lat.N),
-    lng: item.lng?.N == null ? null : Number(item.lng.N),
-    locationAccuracy: item.locationAccuracy?.N == null ? null : Number(item.locationAccuracy.N),
-    locationSource: item.locationSource?.S ?? null,
-    sourceFile: item.sourceFile?.S ?? null,
-    updatedAt: item.updatedAt?.S ?? "",
-  };
+  return parseNotecardTelemetryItem(deviceId, item);
+}
+
+export async function getNotecardTelemetryHistory(
+  deviceId: string,
+  limit = 120,
+): Promise<NotecardTelemetry[]> {
+  const result = await dynamoClient.send(new QueryCommand({
+    TableName: COMMANDS_TABLE,
+    KeyConditionExpression: "deviceId = :deviceId AND begins_with(commandId, :prefix)",
+    ExpressionAttributeValues: {
+      ":deviceId": { S: deviceId },
+      ":prefix": { S: NOTECARD_TELEMETRY_EVENT_PREFIX },
+    },
+    ScanIndexForward: false,
+    Limit: Math.min(Math.max(limit, 1), 500),
+  }));
+  return (result.Items ?? []).map((item) => parseNotecardTelemetryItem(deviceId, item));
 }

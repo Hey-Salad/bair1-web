@@ -29,12 +29,21 @@ interface TimePoint {
   rssi: number | null;
 }
 
+interface EnvironmentalPoint {
+  capturedAt: string;
+  temperature: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  batteryVoltage: number | null;
+}
+
 type Range = "24h" | "7d" | "30d";
 
 export default function AnalyticsView({ deviceId }: Props) {
   const authenticatedFetch = useAuthenticatedFetch();
   const [range, setRange] = useState<Range>("24h");
   const [data, setData] = useState<TimePoint[]>([]);
+  const [environmentalData, setEnvironmentalData] = useState<EnvironmentalPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -53,6 +62,9 @@ export default function AnalyticsView({ deviceId }: Props) {
         timeSeries(deviceId: "${deviceId}", from: "${from}", to: "${now.toISOString()}") {
           timestamp aqi gasVoltage rssi
         }
+        notecardTelemetryHistory(deviceId: "${deviceId}", limit: 500) {
+          capturedAt temperature humidity pressure batteryVoltage
+        }
       }`;
 
       try {
@@ -63,8 +75,11 @@ export default function AnalyticsView({ deviceId }: Props) {
         });
         const json = await res.json();
         setData(json.data?.timeSeries ?? []);
+        const history: EnvironmentalPoint[] = json.data?.notecardTelemetryHistory ?? [];
+        setEnvironmentalData(history.filter((item) => new Date(item.capturedAt).getTime() >= Date.parse(from)));
       } catch {
         setData([]);
+        setEnvironmentalData([]);
       }
       setLoading(false);
     }
@@ -95,6 +110,54 @@ export default function AnalyticsView({ deviceId }: Props) {
     gasVoltage: d.gasVoltage,
     rssi: d.rssi,
   }));
+
+  if (!data.length && environmentalData.length) {
+    const environmentalChart = environmentalData.slice().reverse().map((point) => ({
+      label: formatTime(point.capturedAt, range),
+      temperature: point.temperature,
+      humidity: point.humidity,
+      pressure: point.pressure == null ? null : point.pressure / 100,
+      batteryVoltage: point.batteryVoltage,
+    }));
+    const temperatures = environmentalData.flatMap((point) => point.temperature == null ? [] : [point.temperature]);
+    const humidities = environmentalData.flatMap((point) => point.humidity == null ? [] : [point.humidity]);
+    return (
+      <div className="tab-content-enter px-4 pb-28">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Notecard analytics</div>
+            <h2 className="mt-1 text-2xl font-semibold text-ink">Environmental history</h2>
+          </div>
+          <div className="flex gap-1 rounded-lg border border-border bg-surface p-0.5">
+            {(["24h", "7d", "30d"] as Range[]).map((item) => (
+              <button key={item} onClick={() => setRange(item)} className={`rounded-md px-3 py-1 text-xs font-medium ${range === item ? "bg-primary text-white" : "text-muted"}`}>{item}</button>
+            ))}
+          </div>
+        </div>
+        <div className="mb-5 grid grid-cols-3 gap-2">
+          <div className="rounded-xl border border-border bg-surface p-4"><div className="text-2xl font-semibold">{environmentalData.length}</div><div className="mt-1 text-[10px] uppercase text-muted">Events</div></div>
+          <div className="rounded-xl border border-border bg-surface p-4"><div className="text-2xl font-semibold">{temperatures.length ? `${temperatures.at(0)!.toFixed(1)}°C` : "—"}</div><div className="mt-1 text-[10px] uppercase text-muted">Latest temperature</div></div>
+          <div className="rounded-xl border border-border bg-surface p-4"><div className="text-2xl font-semibold">{humidities.length ? `${humidities.at(0)!.toFixed(0)}%` : "—"}</div><div className="mt-1 text-[10px] uppercase text-muted">Latest humidity</div></div>
+        </div>
+        <div className="rounded-2xl border border-border bg-surface p-4">
+          <div className="mb-3 text-xs font-medium uppercase tracking-wider text-muted">Temperature over time</div>
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={environmentalChart}>
+              <defs><linearGradient id="environmentTemp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#62b550" stopOpacity={0.35}/><stop offset="95%" stopColor="#62b550" stopOpacity={0}/></linearGradient></defs>
+              <CartesianGrid stroke="var(--color-border)" strokeDasharray="4 4" />
+              <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--color-muted)" }} minTickGap={30} />
+              <YAxis tick={{ fontSize: 10, fill: "var(--color-muted)" }} />
+              <Tooltip contentStyle={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 10 }} />
+              <Area type="monotone" dataKey="temperature" stroke="#62b550" fill="url(#environmentTemp)" strokeWidth={2} connectNulls />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-5 rounded-2xl border border-accent/20 bg-accent/5 p-5 text-sm text-muted">
+          PM and AQI analytics will join this view automatically when the particulate sensor starts reporting.
+        </div>
+      </div>
+    );
+  }
 
   // Downsample for display
   const maxPoints = 120;

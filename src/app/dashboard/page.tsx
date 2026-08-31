@@ -14,6 +14,7 @@ import AIChatView from "@/components/AIChatView";
 import AdminView from "@/components/AdminView";
 import DeveloperView from "@/components/DeveloperView";
 import DataSourceBadge from "@/components/DataSourceBadge";
+import NotecardOverview, { type NotecardTelemetryPoint } from "@/components/NotecardOverview";
 import { getAqiState } from "@/lib/aqi";
 import { useAuthenticatedFetch } from "@/lib/use-authenticated-fetch";
 
@@ -22,16 +23,6 @@ interface DeviceOption {
   name: string;
   lat?: number | null;
   lng?: number | null;
-}
-
-interface NotecardTelemetry {
-  capturedAt: string;
-  temperature: number | null;
-  humidity: number | null;
-  pressure: number | null;
-  locationAvailable: boolean;
-  locationSource: string | null;
-  sourceFile: string | null;
 }
 
 export default function Dashboard() {
@@ -74,7 +65,8 @@ export default function Dashboard() {
   const [firmwareVersion, setFirmwareVersion] = useState<string | null>(null);
   const [transport, setTransport] = useState<string | null>(null);
   const [hasAirReading, setHasAirReading] = useState(false);
-  const [notecardTelemetry, setNotecardTelemetry] = useState<NotecardTelemetry | null>(null);
+  const [notecardTelemetry, setNotecardTelemetry] = useState<NotecardTelemetryPoint | null>(null);
+  const [notecardHistory, setNotecardHistory] = useState<NotecardTelemetryPoint[]>([]);
 
   const aqiState = getAqiState(aqi);
 
@@ -131,7 +123,12 @@ export default function Dashboard() {
           pm1 pm25 pm4 pm10 sensorModel board firmwareVersion transport
         }
         notecardTelemetry(deviceId: "${deviceId}") {
-          capturedAt temperature humidity pressure locationAvailable locationSource sourceFile
+          capturedAt receivedAt temperature humidity pressure batteryVoltage motion
+          deviceStatus transport locationAvailable locationSource sourceFile updatedAt
+        }
+        notecardTelemetryHistory(deviceId: "${deviceId}", limit: 120) {
+          capturedAt receivedAt temperature humidity pressure batteryVoltage motion
+          deviceStatus transport locationAvailable locationSource sourceFile updatedAt
         }
       }`;
       const res = await authenticatedFetch("/api/graphql", {
@@ -142,8 +139,9 @@ export default function Dashboard() {
       if (!res.ok) throw new Error("API unavailable");
       const json = await res.json();
       const reading = json.data?.latestReading;
-      const telemetry = json.data?.notecardTelemetry as NotecardTelemetry | null;
+      const telemetry = json.data?.notecardTelemetry as NotecardTelemetryPoint | null;
       setNotecardTelemetry(telemetry);
+      setNotecardHistory(json.data?.notecardTelemetryHistory ?? []);
       if (reading?.aqi !== undefined) {
         setHasAirReading(true);
         setAqi(reading.aqi);
@@ -175,13 +173,14 @@ export default function Dashboard() {
         setTransport("notehub");
         setLastUpdated(new Date(telemetry.capturedAt));
         setLastUpdatedText("Just now");
-        setIsLive(true);
+        setIsLive(Date.now() - new Date(telemetry.receivedAt || telemetry.capturedAt).getTime() < 30 * 60 * 1000);
         return;
       }
       throw new Error("No reading");
     } catch {
       setHasAirReading(false);
       setNotecardTelemetry(null);
+      setNotecardHistory([]);
       setIsLive(false);
     }
   }, [authenticatedFetch, selectedDevice]);
@@ -209,14 +208,14 @@ export default function Dashboard() {
 
   // Demo data when not live
   useEffect(() => {
-    if (isLive) return;
+    if (isLive || selectedDevice) return;
     const interval = setInterval(() => {
       setAqi((prev) => Math.max(0, Math.min(500, prev + Math.floor(Math.random() * 11 - 5))));
       setLastUpdated(new Date());
       setLastUpdatedText("Just now");
     }, 60000);
     return () => clearInterval(interval);
-  }, [isLive]);
+  }, [isLive, selectedDevice]);
 
   // Last updated text
   useEffect(() => {
@@ -318,14 +317,26 @@ export default function Dashboard() {
       <div className="mx-auto w-full max-w-5xl flex-1 pt-4 lg:max-w-none lg:px-8 lg:pt-6">
         {tab === "home" && (
           <div className="tab-content-enter px-4 pb-28 lg:px-0 lg:pb-8">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Bair1 operations</div>
+                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-ink sm:text-3xl">Your air-quality stack</h1>
+                <p className="mt-1 max-w-2xl text-sm text-muted">Real device telemetry, environmental context and particulate measurements—without simulated values mixed into live devices.</p>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                Real data only
+              </div>
+            </div>
             {/* Desktop: two-column layout */}
-            <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(360px,0.9fr)_minmax(480px,1.1fr)] xl:grid-cols-[420px_1fr]">
+            <div className={`flex flex-col gap-6 lg:grid ${notecardTelemetry && !hasAirReading ? "lg:grid-cols-[minmax(520px,1.25fr)_minmax(360px,0.75fr)]" : "lg:grid-cols-[minmax(360px,0.9fr)_minmax(480px,1.1fr)] xl:grid-cols-[420px_1fr]"}`}>
               {/* Left column: Gauge + PM stats */}
               <div className="flex flex-col items-center gap-5">
                 <DataSourceBadge
                   isLive={isLive}
                   sensorId={sensorId}
                   source="Simulated readings"
+                  hasDevice={Boolean(selectedDevice)}
                 />
 
                 {hasAirReading ? (
@@ -334,26 +345,17 @@ export default function Dashboard() {
                     <GuidanceStrip aqiState={aqiState} />
                   </>
                 ) : notecardTelemetry ? (
-                  <div className="w-full rounded-2xl border border-primary/30 bg-primary/5 p-5">
-                    <div className="text-xs font-medium uppercase tracking-wider text-primary">Notecard online</div>
-                    <h2 className="mt-2 text-xl font-semibold text-ink">Waiting for particulate data</h2>
-                    <p className="mt-2 text-sm leading-6 text-muted">
-                      Location and onboard telemetry are arriving normally. AQI will appear after a host MCU sends PM readings.
-                    </p>
-                    <div className="mt-4 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl border border-border bg-bg/50 p-3">
-                        <div className="text-2xl font-semibold text-ink">
-                          {notecardTelemetry.temperature == null ? "—" : `${notecardTelemetry.temperature.toFixed(1)}°C`}
-                        </div>
-                        <div className="mt-1 text-[10px] uppercase text-muted">Onboard temperature</div>
-                      </div>
-                      <div className="rounded-xl border border-border bg-bg/50 p-3">
-                        <div className="text-sm font-semibold text-ink">
-                          {notecardTelemetry.locationAvailable ? "Available privately" : "Waiting for fix"}
-                        </div>
-                        <div className="mt-1 text-[10px] uppercase text-muted">Location</div>
-                      </div>
-                    </div>
+                  <NotecardOverview
+                    deviceId={selectedDevice!}
+                    deviceName={activeDeviceName}
+                    telemetry={notecardTelemetry}
+                    history={notecardHistory}
+                    lastUpdatedText={lastUpdatedText}
+                  />
+                ) : selectedDevice ? (
+                  <div className="w-full rounded-2xl border border-border bg-surface p-6 text-center">
+                    <div className="text-sm font-semibold text-ink">Waiting for the first real event</div>
+                    <p className="mt-2 text-xs leading-5 text-muted">This device is registered. Bair1 will update automatically after its next successful sync.</p>
                   </div>
                 ) : (
                   <>
@@ -396,7 +398,7 @@ export default function Dashboard() {
                 )}
 
                 {/* Sensor connectivity stats */}
-                <div className="grid grid-cols-3 gap-2 w-full">
+                {(!notecardTelemetry || hasAirReading) && <div className="grid grid-cols-3 gap-2 w-full">
                   <div className="bg-surface border border-border rounded-xl p-3 text-center">
                     <svg className="mx-auto mb-1 text-muted/40" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 20h.01"/><path d="M7 20v-4"/><path d="M12 20v-8"/><path d="M17 20V8"/><path d="M22 20V4"/></svg>
                     <div className="text-lg font-bold text-ink">{rssi ?? "—"}</div>
@@ -414,7 +416,7 @@ export default function Dashboard() {
                     <div className="text-lg font-bold text-ink">{transport ?? "—"}</div>
                     <div className="text-[10px] text-muted uppercase">Transport</div>
                   </div>
-                </div>
+                </div>}
 
                 {airState && (
                   <div className="w-full bg-surface border border-border rounded-xl px-4 py-2 text-center">

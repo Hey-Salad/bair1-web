@@ -14,6 +14,7 @@ const notehubEventSchema = z.object({
   best_lat: z.number().optional(),
   best_lon: z.number().optional(),
   best_location_type: z.string().optional(),
+  transport: z.string().optional(),
 }).passthrough();
 
 export type NormalizedNotehubEvent = {
@@ -25,6 +26,10 @@ export type NormalizedNotehubEvent = {
   temperature: number | null;
   humidity: number | null;
   pressure: number | null;
+  batteryVoltage: number | null;
+  motion: number | null;
+  deviceStatus: string | null;
+  transport: string | null;
   pm1: number | null;
   pm25: number | null;
   pm4: number | null;
@@ -101,12 +106,19 @@ export function normalizeNotehubEvent(
   const pm25 = numeric(body, "pm25", "pm2_5", "pm2.5");
   const pm4 = numeric(body, "pm4", "pm4_0");
   const pm10 = numeric(body, "pm10", "pm10_0");
+  const batteryVoltage = numeric(body, "batteryVoltage", "battery_voltage", "voltage");
+  const motion = numeric(body, "motion");
+  const deviceStatus = body.status == null ? null : String(body.status);
+  const transport = event.transport ?? "notehub";
 
   const sanitizedPayload: Record<string, unknown> = {
     capturedAt,
     temperature,
     humidity: numeric(body, "humidity", "rh"),
     pressure: numeric(body, "pressure", "pressurePa"),
+    batteryVoltage,
+    motion,
+    deviceStatus,
     pm1,
     pm25,
     pm4,
@@ -119,7 +131,7 @@ export function normalizeNotehubEvent(
     sensorModel: body.sensorModel ? String(body.sensorModel) : null,
     board: body.board ? String(body.board) : "Blues Notecard",
     firmwareVersion: body.firmwareVersion ? String(body.firmwareVersion) : null,
-    transport: "notehub",
+    transport,
   };
 
   return {
@@ -131,6 +143,10 @@ export function normalizeNotehubEvent(
     temperature,
     humidity: numeric(body, "humidity", "rh"),
     pressure: numeric(body, "pressure", "pressurePa"),
+    batteryVoltage,
+    motion,
+    deviceStatus,
+    transport,
     pm1,
     pm25,
     pm4,

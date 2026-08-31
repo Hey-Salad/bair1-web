@@ -11,7 +11,7 @@ const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || "";
 interface SensorPin {
   deviceId: string;
   name: string;
-  aqi: number;
+  aqi: number | null;
   lat: number;
   lng: number;
   location: string;
@@ -73,7 +73,7 @@ export default function MapView() {
         .map((d: any) => ({
           deviceId: d.deviceId,
           name: d.name,
-          aqi: d.latestReading?.aqi ?? 0,
+          aqi: d.latestReading?.aqi ?? null,
           lat: d.latestReading?.lat ?? d.lat,
           lng: d.latestReading?.lng ?? d.lng,
           location: d.location,
@@ -220,7 +220,7 @@ export default function MapView() {
 
     // Add/update markers
     sensors.forEach((sensor) => {
-      const color = getAqiColor(sensor.aqi);
+      const color = sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi);
       const existing = markersRef.current.get(sensor.deviceId);
 
       if (existing) {
@@ -229,7 +229,7 @@ export default function MapView() {
         const el = existing.getElement();
         el.style.background = color;
         el.style.boxShadow = `0 0 12px ${color}, 0 2px 8px rgba(0,0,0,0.3)`;
-        el.textContent = String(sensor.aqi);
+        el.textContent = sensor.aqi == null ? "•" : String(sensor.aqi);
       } else {
         const el = document.createElement("div");
         el.className = "bair1-marker";
@@ -241,7 +241,7 @@ export default function MapView() {
           font-size: 12px; font-weight: 700; color: #fff;
           cursor: pointer; transition: all 0.3s ease;
         `;
-        el.textContent = String(sensor.aqi);
+        el.textContent = sensor.aqi == null ? "•" : String(sensor.aqi);
         el.onmouseenter = () => (el.style.transform = "scale(1.2)");
         el.onmouseleave = () => (el.style.transform = "scale(1)");
 
@@ -251,7 +251,7 @@ export default function MapView() {
             new mapboxgl.Popup({ offset: 25, closeButton: false }).setHTML(`
               <div style="font-family: system-ui; padding: 4px 0;">
                 <div style="font-weight: 700; font-size: 14px;">${sensor.name}</div>
-                <div style="font-size: 12px; color: #666; margin-top: 2px;">AQI ${sensor.aqi} · ${sensor.location}</div>
+                <div style="font-size: 12px; color: #666; margin-top: 2px;">${sensor.aqi == null ? "Environmental telemetry" : `AQI ${sensor.aqi}`} · ${sensor.location}</div>
                 <div style="font-size: 11px; color: #999; margin-top: 2px;">${sensor.lat.toFixed(4)}, ${sensor.lng.toFixed(4)}</div>
               </div>
             `)
@@ -444,7 +444,7 @@ export default function MapView() {
             >
               <div
                 className="w-4 h-4 rounded-full shrink-0 shadow-sm"
-                style={{ backgroundColor: getAqiColor(sensor.aqi) }}
+                style={{ backgroundColor: sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi) }}
               />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium">{sensor.name}</div>
@@ -454,9 +454,9 @@ export default function MapView() {
               </div>
               <div
                 className="text-lg font-bold"
-                style={{ color: getAqiColor(sensor.aqi) }}
+                style={{ color: sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi) }}
               >
-                {sensor.aqi}
+                {sensor.aqi ?? "Live"}
               </div>
             </div>
           ))}

@@ -54,7 +54,8 @@ ingress instead of the particulate-reading endpoint:
 
 ```text
 Blues Notecard → Notehub HTTP Route → /api/integrations/notehub
-                                      ├─ latest private telemetry
+                                      ├─ merged latest private telemetry
+                                      ├─ 90-day environmental event history
                                       └─ PM/AQI reading only when PM/AQI exists
 ```
 
@@ -62,6 +63,10 @@ The ingress validates a Notehub-only route secret, optionally checks the
 ProductUID, and converts the raw DeviceUID into a stable HMAC-derived Bair1 ID.
 Raw DeviceUIDs, IMEI/ICCID values, and full Notehub event envelopes are not
 persisted. Temperature/location-only events never create an AQI value.
+Session events do not erase the latest known environmental values. Authenticated
+workspace members can view a device through the dashboard, and authorized users
+can create signed read-only share links. Shared views exclude precise coordinates,
+account information, raw identifiers, and Notehub envelopes.
 
 Configure the Notehub HTTP Route to:
 

@@ -6,6 +6,7 @@ import {
   getAllDevices,
   getReadingsInRange,
   getNotecardTelemetry,
+  getNotecardTelemetryHistory,
 } from "@/lib/dynamo";
 import { getAllDevicesRegistry, getDevice, type Device } from "@/lib/devices";
 import { extractApiKeyFromHeaders, validateApiKey, type ApiKeyPrincipal } from "@/lib/api-keys";
@@ -114,6 +115,10 @@ const schema = createSchema<GraphqlContext>({
       temperature: Float
       humidity: Float
       pressure: Float
+      batteryVoltage: Float
+      motion: Float
+      deviceStatus: String
+      transport: String
       locationAvailable: Boolean!
       locationSource: String
       sourceFile: String
@@ -136,6 +141,7 @@ const schema = createSchema<GraphqlContext>({
         to: String!
       ): [LocationPoint!]!
       notecardTelemetry(deviceId: String!): NotecardTelemetry
+      notecardTelemetryHistory(deviceId: String!, limit: Int): [NotecardTelemetry!]!
     }
   `,
   resolvers: {
@@ -201,6 +207,14 @@ const schema = createSchema<GraphqlContext>({
               locationAvailable: telemetry.lat != null && telemetry.lng != null,
             }
           : null;
+      },
+      notecardTelemetryHistory: async (_parent, args, context) => {
+        await requireDeviceAccess(context.actor, args.deviceId);
+        const history = await getNotecardTelemetryHistory(args.deviceId, args.limit ?? 120);
+        return history.map((telemetry) => ({
+          ...telemetry,
+          locationAvailable: telemetry.lat != null && telemetry.lng != null,
+        }));
       },
     },
     RegisteredDevice: {
