@@ -59,6 +59,13 @@ Blues Notecard → Notehub HTTP Route → /api/integrations/notehub
                                       └─ PM/AQI reading only when PM/AQI exists
 ```
 
+External Qwiic sensors are not sampled in the standalone configuration. Qwiic
+provides the shared power and I²C wiring, but the Notecard is an I²C peripheral,
+not the application processor that polls arbitrary sensors. A BME280 or
+particulate sensor therefore requires a host MCU. See
+[`docs/saddle-sense-sensor-data-path.md`](docs/saddle-sense-sensor-data-path.md)
+for the verified data path, expected I²C devices, and Bair1 payload contract.
+
 The ingress validates a Notehub-only route secret, optionally checks the
 ProductUID, and converts the raw DeviceUID into a stable HMAC-derived Bair1 ID.
 Raw DeviceUIDs, IMEI/ICCID values, and full Notehub event envelopes are not
