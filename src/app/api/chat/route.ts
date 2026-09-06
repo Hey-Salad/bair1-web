@@ -108,12 +108,12 @@ Always cite whether data comes from "your sensor", "LAQN", or "Google Air Qualit
           const from = new Date(Date.now() - hoursBack * 3600000).toISOString();
           const readings = await getReadingsInRange(deviceId, from, to);
           if (readings.length === 0) return { error: "No readings in range" };
-          const aqis = readings.map((r) => r.aqi);
+          const aqis = readings.map((r) => r.aqi).filter((value): value is number => value != null && Number.isFinite(value));
           return {
             count: readings.length,
-            avgAqi: Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length),
-            minAqi: Math.min(...aqis),
-            maxAqi: Math.max(...aqis),
+            avgAqi: aqis.length ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : null,
+            minAqi: aqis.length ? Math.min(...aqis) : null,
+            maxAqi: aqis.length ? Math.max(...aqis) : null,
             latest: readings[0],
             oldest: readings[readings.length - 1],
           };

@@ -49,7 +49,7 @@ export default function HistoryView({ deviceId }: Props) {
 
         if (!res.ok) throw new Error("Failed to fetch");
         const json = await res.json();
-        const points: { timestamp: string; aqi: number }[] =
+        const points: { timestamp: string; aqi: number | null }[] =
           json.data?.timeSeries ?? [];
 
         if (points.length === 0) {
@@ -69,6 +69,7 @@ export default function HistoryView({ deviceId }: Props) {
         ];
 
         for (const p of points) {
+          if (p.aqi == null || !Number.isFinite(p.aqi)) continue;
           const d = new Date(p.timestamp);
           const key = d.toISOString().slice(0, 10);
           if (!dayMap.has(key)) {

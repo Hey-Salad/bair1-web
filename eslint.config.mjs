@@ -6,6 +6,7 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    files: ["**/*.{js,jsx,ts,tsx}"],
     // These rules were enabled by the Next 16 preset after the existing UI
     // was written. Keep them visible as warnings while the components are
     // migrated incrementally instead of blocking every security/API change.

@@ -22,7 +22,10 @@ export async function POST(req: NextRequest) {
 
   const deviceId = String(body.deviceId ?? "unknown");
   const pm25 = body.pm25 != null ? Number(body.pm25) : null;
-  const aqi = Number(body.aqi ?? pm25 ?? 0);
+  const aqi = body.aqi == null ? null : Number(body.aqi);
+  if (aqi !== null && (!["number", "string"].includes(typeof body.aqi) || String(body.aqi).trim() === "" || !Number.isFinite(aqi) || aqi < 0)) {
+    return NextResponse.json({ error: "aqi must be a non-negative number or null" }, { status: 400 });
+  }
   const gasRaw = body.gasRaw != null ? Number(body.gasRaw) : null;
   const gasVoltage = body.gasVoltage != null ? Number(body.gasVoltage) : null;
   const airState = body.airState ? String(body.airState) : null;

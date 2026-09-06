@@ -22,7 +22,7 @@ interface TrailPoint {
   timestamp: string;
   lat: number;
   lng: number;
-  aqi: number;
+  aqi: number | null;
 }
 
 const legend = [
@@ -220,7 +220,7 @@ export default function MapView() {
 
     // Add/update markers
     sensors.forEach((sensor) => {
-      const color = sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi);
+      const color = getAqiColor(sensor.aqi);
       const existing = markersRef.current.get(sensor.deviceId);
 
       if (existing) {
@@ -444,7 +444,7 @@ export default function MapView() {
             >
               <div
                 className="w-4 h-4 rounded-full shrink-0 shadow-sm"
-                style={{ backgroundColor: sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi) }}
+                style={{ backgroundColor: getAqiColor(sensor.aqi) }}
               />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium">{sensor.name}</div>
@@ -454,9 +454,9 @@ export default function MapView() {
               </div>
               <div
                 className="text-lg font-bold"
-                style={{ color: sensor.aqi == null ? "#62b550" : getAqiColor(sensor.aqi) }}
+                style={{ color: getAqiColor(sensor.aqi) }}
               >
-                {sensor.aqi ?? "Live"}
+                {sensor.aqi ?? "No AQI"}
               </div>
             </div>
           ))}

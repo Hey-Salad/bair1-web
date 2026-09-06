@@ -18,7 +18,7 @@ function computeAnalytics(readings: Reading[]) {
     };
   }
 
-  const aqiValues = readings.map((r) => r.aqi);
+  const aqiValues = readings.map((r) => r.aqi).filter((value): value is number => value != null && Number.isFinite(value));
   const pm25Values = readings.filter((r) => r.pm25 != null).map((r) => r.pm25 as number);
   const timestamps = readings
     .map((r) => r.timestamp)
@@ -30,9 +30,9 @@ function computeAnalytics(readings: Reading[]) {
 
   return {
     totalReadings: readings.length,
-    avgAqi: Math.round((sumAqi / aqiValues.length) * 100) / 100,
-    minAqi: Math.min(...aqiValues),
-    maxAqi: Math.max(...aqiValues),
+    avgAqi: aqiValues.length ? Math.round((sumAqi / aqiValues.length) * 100) / 100 : null,
+    minAqi: aqiValues.length ? Math.min(...aqiValues) : null,
+    maxAqi: aqiValues.length ? Math.max(...aqiValues) : null,
     avgPm25: pm25Values.length > 0
       ? Math.round((sumPm25 / pm25Values.length) * 100) / 100
       : null,

@@ -60,7 +60,7 @@ const schema = createSchema<GraphqlContext>({
     type Reading {
       deviceId: String!
       timestamp: String!
-      aqi: Int!
+      aqi: Int
       gasRaw: Int
       gasVoltage: Float
       airState: String
@@ -94,7 +94,7 @@ const schema = createSchema<GraphqlContext>({
 
     type AqiTimeSeries {
       timestamp: String!
-      aqi: Int!
+      aqi: Int
       gasVoltage: Float
       rssi: Int
       lat: Float
@@ -105,7 +105,7 @@ const schema = createSchema<GraphqlContext>({
       timestamp: String!
       lat: Float!
       lng: Float!
-      aqi: Int!
+      aqi: Int
       accuracy: Float
     }
 

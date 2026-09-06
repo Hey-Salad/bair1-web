@@ -24,7 +24,7 @@ interface Props {
 
 interface TimePoint {
   timestamp: string;
-  aqi: number;
+  aqi: number | null;
   gasVoltage: number | null;
   rssi: number | null;
 }
@@ -165,10 +165,10 @@ export default function AnalyticsView({ deviceId }: Props) {
   const sampled = chartData.filter((_, i) => i % step === 0);
 
   // Stats
-  const aqis = data.map((d) => d.aqi);
-  const avg = aqis.length ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : 0;
-  const max = aqis.length ? Math.max(...aqis) : 0;
-  const min = aqis.length ? Math.min(...aqis) : 0;
+  const aqis = data.map((d) => d.aqi).filter((value): value is number => value != null && Number.isFinite(value));
+  const avg = aqis.length ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : null;
+  const max = aqis.length ? Math.max(...aqis) : null;
+  const min = aqis.length ? Math.min(...aqis) : null;
 
   // Distribution
   const buckets = [
@@ -212,7 +212,7 @@ export default function AnalyticsView({ deviceId }: Props) {
         ].map((s) => (
           <div key={s.label} className="bg-surface border border-border rounded-xl p-3 text-center">
             <div className="text-xl font-bold" style={{ color: s.color || "var(--color-ink)" }}>
-              {s.value}
+              {s.value ?? "—"}
             </div>
             <div className="text-[10px] text-muted uppercase">{s.label}</div>
           </div>

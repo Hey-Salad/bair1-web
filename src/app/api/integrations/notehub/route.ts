@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
       ? await storeReading({
           deviceId: normalized.publicDeviceId,
           timestamp: normalized.capturedAt,
-          aqi: normalized.aqi ?? normalized.pm25 ?? 0,
+          aqi: normalized.aqi,
           gasRaw: null,
           gasVoltage: null,
           airState: null,

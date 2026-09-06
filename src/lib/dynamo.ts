@@ -16,7 +16,7 @@ const RETENTION_SECONDS = 14 * 24 * 60 * 60;
 export interface Reading {
   deviceId: string;
   timestamp: string;
-  aqi: number;
+  aqi: number | null;
   gasRaw: number | null;
   gasVoltage: number | null;
   airState: string | null;
@@ -102,7 +102,7 @@ function parseItem(item: Record<string, AttributeValue>): Reading {
   return {
     deviceId: text(item, "deviceId") ?? "unknown",
     timestamp: text(item, "timestamp") ?? "",
-    aqi: number(item, "aqi") ?? 0,
+    aqi: number(item, "aqi"),
     gasRaw: number(item, "gasRaw"),
     gasVoltage: number(item, "gasVoltage"),
     airState: text(item, "airState"),
@@ -226,11 +226,11 @@ export async function storeReading(input: ReadingInput): Promise<boolean> {
   const item: Record<string, AttributeValue> = {
     deviceId: { S: input.deviceId },
     timestamp: { S: timestamp },
-    aqi: { N: String(input.aqi) },
     rawPayload: { S: JSON.stringify(input.rawPayload) },
     expiresAt: { N: String(expiresAt) },
   };
   const optionalNumbers = {
+    aqi: input.aqi,
     gasRaw: input.gasRaw,
     gasVoltage: input.gasVoltage,
     rssi: input.rssi,

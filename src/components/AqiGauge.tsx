@@ -3,11 +3,17 @@
 import { getAqiColor } from "@/lib/aqi";
 
 interface AqiGaugeProps {
-  aqi: number;
+  aqi: number | null;
   size?: number;
 }
 
 export default function AqiGauge({ aqi, size = 200 }: AqiGaugeProps) {
+  if (aqi == null || !Number.isFinite(aqi)) return (
+    <div className="flex flex-col items-center justify-center text-muted" style={{ width: size, height: size * 0.7 }}>
+      <div className="text-5xl">—</div>
+      <div className="text-sm mt-2">AQI unavailable</div>
+    </div>
+  );
   const color = getAqiColor(aqi);
   const maxAqi = 500;
   const percentage = Math.min(aqi / maxAqi, 1);

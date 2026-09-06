@@ -32,7 +32,7 @@ export type SharedDeviceSnapshot = {
   }>;
   airQuality: null | {
     timestamp: string;
-    aqi: number;
+    aqi: number | null;
     pm1: number | null;
     pm25: number | null;
     pm4: number | null;

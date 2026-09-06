@@ -43,7 +43,7 @@ export default function Dashboard() {
     auth0Logout({ logoutParams: { returnTo: window.location.origin } });
 
   const [tab, setTab] = useState<Tab>("home");
-  const [aqi, setAqi] = useState(42);
+  const [aqi, setAqi] = useState<number | null>(null);
   const [sensorId, setSensorId] = useState("64E83383EC74");
   const [isLive, setIsLive] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
@@ -213,17 +213,6 @@ export default function Dashboard() {
     }, 0);
     return () => window.clearTimeout(timer);
   }, [selectedDevice, devices]);
-
-  // Demo data when not live
-  useEffect(() => {
-    if (isLive || selectedDevice) return;
-    const interval = setInterval(() => {
-      setAqi((prev) => Math.max(0, Math.min(500, prev + Math.floor(Math.random() * 11 - 5))));
-      setLastUpdated(new Date());
-      setLastUpdatedText("Just now");
-    }, 60000);
-    return () => clearInterval(interval);
-  }, [isLive, selectedDevice]);
 
   // Last updated text
   useEffect(() => {

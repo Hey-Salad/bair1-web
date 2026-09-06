@@ -8,7 +8,12 @@ export interface AqiState {
   range: string;
 }
 
-export function getAqiState(aqi: number): AqiState {
+export function getAqiState(aqi: number | null): AqiState {
+  if (aqi == null || !Number.isFinite(aqi)) return {
+    level: "AQI unavailable", orbColor: "#6B7280", orbColorClass: "bg-aqi-grey",
+    bgGradient: "from-aqi-grey/20 to-fresh-linen", expression: "neutral",
+    guidance: ["PM concentrations are not AQI scores", "No calculated AQI supplied"], range: "Unavailable",
+  };
   if (aqi <= 50) {
     return {
       level: "Good",
@@ -75,7 +80,8 @@ export function getAqiState(aqi: number): AqiState {
   };
 }
 
-export function getAqiColor(aqi: number): string {
+export function getAqiColor(aqi: number | null): string {
+  if (aqi == null || !Number.isFinite(aqi)) return "#6B7280";
   if (aqi <= 50) return "#8DC44A";
   if (aqi <= 100) return "#F5C542";
   if (aqi <= 150) return "#ED8B00";

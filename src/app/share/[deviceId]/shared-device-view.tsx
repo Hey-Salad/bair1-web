@@ -131,7 +131,8 @@ export default function SharedDeviceView({
             <h2 className="text-lg font-semibold">Air-quality stack</h2>
             {snapshot.airQuality ? (
               <div className="mt-6">
-                <div className="text-6xl font-semibold text-primary">{snapshot.airQuality.aqi}</div>
+                <div className="text-6xl font-semibold text-primary">{snapshot.airQuality.aqi ?? "—"}</div>
+                {snapshot.airQuality.aqi == null && <p className="text-sm text-muted">AQI unavailable — PM concentrations are not AQI scores.</p>}
                 <div className="mt-2 text-sm text-muted">Current AQI</div>
                 <div className="mt-6 grid grid-cols-2 gap-2 text-sm">
                   <div className="rounded-xl bg-bg p-3">PM2.5<br/><strong>{value(snapshot.airQuality.pm25, " µg/m³")}</strong></div>
