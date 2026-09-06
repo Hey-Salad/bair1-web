@@ -156,7 +156,7 @@ export default function NotecardOverview({
         <div className="space-y-4">
           <div className="rounded-2xl border border-accent/20 bg-accent/5 p-4">
             <div className="text-xs font-semibold text-accent">Air-quality layer ready</div>
-            <p className="mt-2 text-xs leading-5 text-muted">Connectivity, environment and private location are online. AQI activates when the host sensor sends PM2.5 or PM10.</p>
+            <p className="mt-2 text-xs leading-5 text-muted">Particulate measurements appear when the host sensor sends PM2.5 or PM10. AQI remains unavailable until a calculated AQI is supplied; PM concentrations alone are not AQI scores.</p>
           </div>
           <div className="rounded-2xl border border-border bg-bg/40 p-4">
             <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-muted">Pipeline health</div>
