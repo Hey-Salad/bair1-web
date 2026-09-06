@@ -40,6 +40,9 @@ export default function FirmwarePage() {
             </span>
           </Link>
           <div className="flex items-center gap-4">
+            <Link href="/device-setup" className="text-sm font-medium text-primary transition-colors hover:text-primary-hover">
+              Device setup
+            </Link>
             <Link href="/" className="hidden text-sm font-medium text-muted transition-colors hover:text-ink sm:block">
               Home
             </Link>
